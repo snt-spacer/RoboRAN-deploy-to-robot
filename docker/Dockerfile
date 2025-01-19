@@ -1,13 +1,13 @@
 # Use ROS2 Humble base image
 FROM ros:humble
 
-# Set up working directory
-WORKDIR /workspace
+# Set the working directory to the main folder of your repository
+WORKDIR /RANS_DeployToRobot
 
-# Copy project files into the container
-COPY . /workspace/
+# Copy everything from the repository into the working directory
+COPY . .
 
-# Install Python dependencies
+# Install necessary dependencies
 RUN apt-get update && apt-get install -y \
     python3-pip \
     ros-humble-rclpy \
@@ -15,13 +15,12 @@ RUN apt-get update && apt-get install -y \
     byobu \
     && rm -rf /var/lib/apt/lists/*
 
-RUN pip3 install --no-cache-dir -r /workspace/requirements.txt
+# Install Python dependencies
+RUN pip3 install --no-cache-dir -r requirements.txt
 
 # Source ROS2 setup
 SHELL ["/bin/bash", "-c"]
 RUN echo "source /opt/ros/humble/setup.bash" >> ~/.bashrc
 
-# Expose ports if needed
-EXPOSE 11311
-
+# Default command
 CMD ["bash"]
