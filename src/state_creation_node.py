@@ -5,6 +5,7 @@ from rclpy.node import Node
 from geometry_msgs.msg import PoseStamped, Point
 from std_msgs.msg import Float32MultiArray
 import numpy as np
+from typing import List, Tuple
 
 
 class StateCreationNode(Node):
@@ -22,27 +23,30 @@ class StateCreationNode(Node):
         # Publisher
         self.state_pub = self.create_publisher(Float32MultiArray, "/rl_task_state", 10)
 
-        # Timer (replaces rospy.Rate)
-        self.timer = self.create_timer(0.1, self.publish_state)  # 10 Hz
+        # Timer (10 Hz publishing)
+        self.timer = self.create_timer(0.1, self.publish_state)
 
         # Internal state variables
-        self.robot_pose = None
+        self.robot_position = None
         self.robot_quat = None
         self.robot_vel = np.zeros(6)  # Linear (x, y, z) and Angular (roll, pitch, yaw)
         self.goal_position = None
-        self.pose_history = []
+        self.pose_buffer = []
+        self.time_buffer = []
 
     def pose_callback(self, msg: PoseStamped):
         # Update pose and quaternion
         pos = msg.pose.position
         quat = msg.pose.orientation
-        self.robot_pose = np.array([pos.x, pos.y, pos.z])
+        self.robot_position = np.array([pos.x, pos.y, pos.z])
         self.robot_quat = np.array([quat.w, quat.x, quat.y, quat.z])
 
-        # Store pose history for velocity calculation
-        self.pose_history.append((self.robot_pose, self.get_clock().now().nanoseconds))
-        if len(self.pose_history) > 30:  # Keep the last 30 messages
-            self.pose_history.pop(0)
+        # Store pose and timestamp in buffers
+        self.pose_buffer.append(msg)
+        self.time_buffer.append(self.get_clock().now().nanoseconds)
+        if len(self.pose_buffer) > 30:  # Limit buffer size
+            self.pose_buffer.pop(0)
+            self.time_buffer.pop(0)
 
         # Update linear and angular velocities
         self.robot_vel[:3], self.robot_vel[3:] = self.derive_velocities()
@@ -59,37 +63,63 @@ class StateCreationNode(Node):
         heading = np.arctan2(2.0 * (x * y + z), 1.0 - 2.0 * (y**2 + z**2))
         return heading
 
-    def derive_velocities(self):
+    def angular_velocities(self, q: np.ndarray, dt: np.ndarray) -> np.ndarray:
         """
-        Computes linear and angular velocities using pose history.
+        Calculate the angular velocities from quaternions.
+        
+        Args:
+            q (np.ndarray): Array of quaternions.
+            dt (np.ndarray): Array of time differences between quaternions.
+
         Returns:
-            lin_vel (np.ndarray): Linear velocity [vx, vy, vz].
-            ang_vel (np.ndarray): Angular velocity [roll_rate, pitch_rate, yaw_rate].
+            np.ndarray: Angular velocities [roll_rate, pitch_rate, yaw_rate].
         """
-        if len(self.pose_history) < 2:
+        return (2 / dt) * np.array([
+            q[:-1, 0] * q[1:, 1] - q[:-1, 1] * q[1:, 0] - q[:-1, 2] * q[1:, 3] + q[:-1, 3] * q[1:, 2],
+            q[:-1, 0] * q[1:, 2] + q[:-1, 1] * q[1:, 3] - q[:-1, 2] * q[1:, 0] - q[:-1, 3] * q[1:, 1],
+            q[:-1, 0] * q[1:, 3] - q[:-1, 1] * q[1:, 2] + q[:-1, 2] * q[1:, 1] - q[:-1, 3] * q[1:, 0]
+        ])
+
+    def derive_velocities(self) -> Tuple[np.ndarray, np.ndarray]:
+        """
+        Derive the linear and angular velocities using pose and time buffers.
+
+        Returns:
+            Tuple[np.ndarray, np.ndarray]: Linear and angular velocities.
+        """
+        if len(self.pose_buffer) < 2:
             return np.zeros(3), np.zeros(3)
 
-        # Calculate velocity using the last two poses
-        (pos1, t1), (pos2, t2) = self.pose_history[-2:]
-        dt = (t2 - t1) * 1e-9  # Nanoseconds to seconds
-        lin_vel = (pos2 - pos1) / dt
+        # Calculate time differences
+        dt = (self.time_buffer[-1] - self.time_buffer[0]) * 1e-9  # Nanoseconds to seconds
+        if dt == 0:
+            return np.zeros(3), np.zeros(3)
 
-        # Placeholder for angular velocity (can be expanded)
-        ang_vel = np.zeros(3)
+        # Calculate linear velocities
+        linear_positions = np.array([
+            [pose.pose.position.x, pose.pose.position.y, pose.pose.position.z]
+            for pose in self.pose_buffer
+        ])
+        linear_velocities = np.diff(linear_positions, axis=0) / (dt / len(self.pose_buffer))
+        avg_linear_velocity = np.mean(linear_velocities, axis=0)
 
-        return lin_vel, ang_vel
+        # Calculate angular velocities
+        quaternions = np.array([
+            [pose.pose.orientation.w, pose.pose.orientation.x, pose.pose.orientation.y, pose.pose.orientation.z]
+            for pose in self.pose_buffer
+        ])
+        dt_per_step = np.ones((len(quaternions) - 1)) * (dt / (len(quaternions) - 1))
+        angular_velocities = self.angular_velocities(quaternions, dt_per_step)
+        avg_angular_velocity = np.mean(angular_velocities, axis=1)
+
+        return avg_linear_velocity, avg_angular_velocity
 
     def compute_state(self):
-        if self.robot_pose is None:
-            self.get_logger().warn("Pose not received yet.")
-            return None
-
-        if self.goal_position is None:
-            self.get_logger().warn("Goal not received yet.")
+        if self.robot_position is None or self.goal_position is None:
             return None
 
         # Compute state for `go_to_position` task
-        position_error = self.goal_position[:2] - self.robot_pose[:2]
+        position_error = self.goal_position[:2] - self.robot_position[:2]
         position_dist = np.linalg.norm(position_error)
 
         # Compute heading and target heading
@@ -106,7 +136,6 @@ class StateCreationNode(Node):
         state[6] = 0.0  # Placeholder for previous action
 
         return state
-
 
     def publish_state(self):
         state = self.compute_state()
