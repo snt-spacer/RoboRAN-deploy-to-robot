@@ -18,21 +18,29 @@ class RLTaskNode(Node):
         self.goal_tolerance = 0.1  # Distance tolerance for goal completion
         self.steps_to_validate = 10  # Steps to maintain the goal to validate success
 
-        # State variables
-        self.robot_pose = None
+        # State representation
+        self.prev_action = torch.zeros(9, dtype=torch.float32)  # Shape (9,) [0: airbearing, 1-8: thrusters]
+        self.state = torch.zeros(15, dtype=torch.float32)  # Shape (15,) [0: target_dist, 1-2: target_heading, 3-4: lin_vel, 5: yaw_rate, 6-15: prev_action]
+        self.air_bearing = torch.tensor((0,), dtype=torch.float32)  # Placeholder for air bearing value    
+
+        # Robot state variables
+        self.robot_position = None
         self.robot_quat = None
-        self.prev_action = torch.zeros(2, dtype=torch.float32)  # Example action shape
+        self.robot_vel = np.zeros(6)  # Linear (x, y, z) + Angular (roll, pitch, yaw)
+
+        # Task execution tracking
         self.current_step = 0
         self.successful_steps = 0
-        self.robot_vel = torch.zeros(6, dtype=torch.float32)  # Linear (x, y, z) + Angular (roll, pitch, yaw)
+
+        # Buffers for velocity computation
+        self.pose_buffer = []
+        self.time_buffer = []
 
         # ROS2 communication
         self.create_subscription(PoseStamped, "/vrpn_client_node/FP_exp_RL/pose", self.pose_callback, 10)
 
         # Timer for repeating task loop (10 Hz)
         self.timer = self.create_timer(0.1, self.task_loop)
-        self.pose_buffer = []
-        self.time_buffer = []
 
         self.get_logger().info(f"RL Task Node initialized for task: {self.task_name}")
 
@@ -54,97 +62,103 @@ class RLTaskNode(Node):
         # Update linear and angular velocities
         self.robot_vel[:3], self.robot_vel[3:] = self.derive_velocities()
 
-
-    def quaternion_to_heading(self, quat: torch.Tensor) -> float:
-        """Convert quaternion to heading (yaw)."""
-        w, x, y, z = quat
-        heading = torch.atan2(2.0 * (x * y + z * w), 1.0 - 2.0 * (y**2 + z**2))
+    def quaternion_to_heading(self, quat):
+        """
+        Converts a quaternion to a heading (yaw angle in radians).
+        """
+        _, x, y, z = quat
+        heading = np.arctan2(2.0 * (x * y + z), 1.0 - 2.0 * (y**2 + z**2))
         return heading
    
-    def angular_velocities(self, q: torch.Tensor, dt: torch.Tensor) -> torch.Tensor:
+    def get_angular_velocities(self, q: np.ndarray, dt: np.ndarray) -> np.ndarray:
         """
         Calculate the angular velocities from quaternions.
         
         Args:
-            q (torch.Tensor): Quaternions of shape (N, 4)
-            dt (torch.Tensor): Time differences of shape (N,)
+            q (np.ndarray): Array of quaternions.
+            dt (np.ndarray): Array of time differences between quaternions.
+
         Returns:
-            torch.Tensor: Angular velocities of shape (N-1, 3)
+            np.ndarray: Angular velocities [roll_rate, pitch_rate, yaw_rate].
         """
-        # Calculate quaternion differences
-        return (2 / dt) * torch.tensor([
+        return (2 / dt) * np.array([
             q[:-1, 0] * q[1:, 1] - q[:-1, 1] * q[1:, 0] - q[:-1, 2] * q[1:, 3] + q[:-1, 3] * q[1:, 2],
             q[:-1, 0] * q[1:, 2] + q[:-1, 1] * q[1:, 3] - q[:-1, 2] * q[1:, 0] - q[:-1, 3] * q[1:, 1],
             q[:-1, 0] * q[1:, 3] - q[:-1, 1] * q[1:, 2] + q[:-1, 2] * q[1:, 1] - q[:-1, 3] * q[1:, 0]
         ])
     
-    
     def derive_velocities(self) -> Tuple[torch.Tensor, torch.Tensor]:
         """Derive linear and angular velocities from pose and time buffers."""
         if len(self.pose_buffer) < 2:
-            return torch.zeros(3), torch.zeros(3)
+            return np.zeros(3), np.zeros(3)
 
         # Calculate time differences
         dt = (self.time_buffer[-1] - self.time_buffer[0]) * 1e-9  # Nanoseconds to seconds
         if dt == 0:
-            return torch.zeros(3), torch.zeros(3)
+            return np.zeros(3), np.zeros(3)
 
         # Calculate linear velocities
-        linear_positions = torch.tensor([
+        linear_positions = np.array([
             [pose.pose.position.x, pose.pose.position.y, pose.pose.position.z]
             for pose in self.pose_buffer
-        ], dtype=torch.float32)
-        linear_velocities = torch.diff(linear_positions, dim=0) / dt # Finite difference
-        avg_linear_velocity = torch.mean(linear_velocities, axis=0)
+        ])
+        linear_velocities = np.diff(linear_positions, axis=0) / (dt / len(self.pose_buffer))
+        avg_linear_velocity = np.mean(linear_velocities, axis=0)
 
         # Calculate angular velocities
-        quaternions = torch.tensor([
+        quaternions = np.array([
             [pose.pose.orientation.w, pose.pose.orientation.x, pose.pose.orientation.y, pose.pose.orientation.z]
             for pose in self.pose_buffer
-        ], dtype=torch.float32)
-        dt_per_step = torch.ones((len(quaternions) - 1)) * (dt / (len(quaternions) - 1))
-        angular_velocities = self.angular_velocities(quaternions, dt_per_step) 
-        avg_angular_velocity = torch.mean(angular_velocities, axis=0)
+        ])
+        dt_per_step = np.ones((len(quaternions) - 1)) * (dt / (len(quaternions) - 1))
+        angular_velocities = self.get_angular_velocities(quaternions, dt_per_step)
+        avg_angular_velocity = np.mean(angular_velocities, axis=1)
 
-        return (avg_linear_velocity, avg_angular_velocity)
+        return avg_linear_velocity, avg_angular_velocity
 
     def build_state(self) -> torch.Tensor:
-        """Build the state for the task."""
-        if self.robot_pose is None:
+        """Build the state tensor for the task."""
+        
+        if self.robot_position is None or self.robot_quat is None:
             return None
 
         # Compute position error
-        position_error = self.goal - self.robot_pose[:2]
-        position_dist = torch.norm(position_error)
+        position_error = self.goal - self.robot_position[:2]
+        position_dist = torch.norm(position_error)  # Euclidean distance to goal
 
         # Compute heading and target heading
         heading = self.quaternion_to_heading(self.robot_quat)
         target_heading = torch.atan2(position_error[1], position_error[0])
         target_heading_error = torch.atan2(torch.sin(target_heading - heading), torch.cos(target_heading - heading))
 
-        # Build state tensor
-        state = torch.cat([
-            torch.tensor([position_dist, torch.cos(target_heading_error), torch.sin(target_heading_error)]),
-            self.robot_vel[:2],  # Linear velocity
-            self.robot_vel[3:],  # Angular velocity
-            self.prev_action
-        ])
-        return state
+        lin_vel = torch.tensor(self.robot_vel[:2], dtype=torch.float32)
+        yaw_rate = torch.tensor(self.robot_vel[5], dtype=torch.float32)
+        self.state[0] = position_dist  # Scalar distance to goal
+        self.state[1] = torch.cos(target_heading_error)
+        self.state[2] = torch.sin(target_heading_error)
+        self.state[3:5] = lin_vel  # Linear velocity
+        self.state[5] = yaw_rate  # Yaw rate
+        self.state[6:] = self.prev_action  # Previous action
+
 
     def model_inference(self, state: torch.Tensor) -> torch.Tensor:
         """Placeholder function for RL model inference."""
         # For demonstration purposes, return random actions.
         # Replace this with a trained model's inference.
-        action = torch.rand(2, dtype=torch.float32) * 2 - 1  # Example action range [-1, 1]
+        action = torch.rand(8, dtype=torch.float32) > 0.5
+        # concat the air bearing value
+        action = torch.cat([self.air_bearing, action], dim=0)
+
+        
         return action
 
     def validate_task_completion(self) -> bool:
         """Validate if the task is successfully completed."""
-        if self.robot_pose is None:
+        if self.robot_position is None:
             return False
 
         # Check if goal is reached within tolerance
-        dist_to_goal = torch.norm(self.goal - self.robot_pose[:2])
+        dist_to_goal = torch.norm(self.goal - self.robot_position[:2])
         if dist_to_goal < self.goal_tolerance:
             self.successful_steps += 1
         else:
@@ -155,14 +169,14 @@ class RLTaskNode(Node):
 
     def task_loop(self):
         """Main task loop."""
-        state = self.build_state()
-        if state is None:
+        self.build_state()
+        if self.state is None:
             self.get_logger().warn("State could not be built. Waiting for pose data...")
             return
 
         # Perform inference to get the next action
-        action = self.model_inference(state)
-        self.get_logger().info(f"Step: {self.current_step}, State: {state.tolist()}, Action: {action.tolist()}")
+        action = self.model_inference(self.state)
+        self.get_logger().info(f"Step: {self.current_step}, State: {self.state.tolist()}, Action: {action.tolist()}")
 
         # Update the previous action
         self.prev_action = action
