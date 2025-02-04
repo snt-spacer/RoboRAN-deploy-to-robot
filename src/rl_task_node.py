@@ -3,6 +3,7 @@
 import rclpy
 from rclpy.node import Node
 from geometry_msgs.msg import PoseStamped
+from std_msgs.msg import Int16MultiArray, ByteMultiArray
 import numpy as np
 import torch
 from typing import Tuple
@@ -36,14 +37,17 @@ class RLTaskNode(Node):
         self.pose_buffer = []
         self.time_buffer = []
 
-        # ROS2 communication
-        self.create_subscription(PoseStamped, "/vrpn_client_node/FP_exp_RL/pose", self.pose_callback, 10)
-
+        # ROS2 communication (/omniFPS/Robots/FloatingPlatform/PoseStamped)
+        #self.create_subscription(PoseStamped, "/vrpn_client_node/FP_exp_RL/pose", self.pose_callback, 10)
+        self.create_subscription(PoseStamped, "/omniFPS/Robots/FloatingPlatform/PoseStamped", self.pose_callback, 10)
+        # ROS2 communication (MultiBinaryArray message for thruster commands)
+        self.action_pub = self.create_publisher(ByteMultiArray, "/omniFPS/Robots/FloatingPlatform/thrusters/input", 10)
+        self.thruster_msg = ByteMultiArray()
         # Timer for repeating task loop (10 Hz)
         self.timer = self.create_timer(0.1, self.task_loop)
 
         self.get_logger().info(f"RL Task Node initialized for task: {self.task_name}")
-
+        
     def pose_callback(self, msg: PoseStamped):
         """Callback for OptiTrack pose messages."""
         # Update pose and quaternion
@@ -176,6 +180,13 @@ class RLTaskNode(Node):
 
         # Perform inference to get the next action
         action = self.model_inference(self.state)
+        # Publish the action to the robot (e.g., thruster commands using ByteMultiArray -- need to convert to bytes)
+        # byte_action = [bytes([value]) for value in action.int().tolist()]
+        self.thruster_msg.data = [value.to_bytes(1, byteorder='little') for value in action.int().tolist()]
+
+
+        self.action_pub.publish(self.thruster_msg)
+        # Log the step details
         self.get_logger().info(f"Step: {self.current_step}, State: {self.state.tolist()}, Action: {action.tolist()}")
 
         # Update the previous action
