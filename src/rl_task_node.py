@@ -7,7 +7,12 @@ from std_msgs.msg import Int16MultiArray, ByteMultiArray
 import numpy as np
 import torch
 from typing import Tuple
-
+import math
+from skrl_inference.light_inference_runner import LightInferenceRunner
+from skrl.utils.spaces.torch import flatten_tensorized_space, tensorize_space, unflatten_tensorized_space
+import yaml
+import time
+from gymnasium import spaces
 
 class RLTaskNode(Node):
     def __init__(self, task_name: str, goal: Tuple[float, float]):
@@ -20,9 +25,9 @@ class RLTaskNode(Node):
         self.steps_to_validate = 10  # Steps to maintain the goal to validate success
 
         # State representation
-        self.prev_action = torch.zeros(9, dtype=torch.float32)  # Shape (9,) [0: airbearing, 1-8: thrusters]
-        self.state = torch.zeros(15, dtype=torch.float32)  # Shape (15,) [0: target_dist, 1-2: target_heading, 3-4: lin_vel, 5: yaw_rate, 6-15: prev_action]
-        self.air_bearing = torch.tensor((0,), dtype=torch.float32)  # Placeholder for air bearing value    
+        self.prev_action = torch.zeros(8, dtype=torch.float32)  # Shape (9,) [0: airbearing, 1-8: thrusters]
+        self.state = torch.zeros(14, dtype=torch.float32)  # Shape (15,) [0: target_dist, 1-2: target_heading, 3-4: lin_vel, 5: yaw_rate, 6-15: prev_action]
+        self.air_bearing = torch.tensor((1,), dtype=torch.float32)  # Placeholder for air bearing value    
 
         # Robot state variables
         self.robot_position = None
@@ -32,22 +37,36 @@ class RLTaskNode(Node):
         # Task execution tracking
         self.current_step = 0
         self.successful_steps = 0
+        self.num_steps_episode = 200
 
         # Buffers for velocity computation
         self.pose_buffer = []
         self.time_buffer = []
 
         # ROS2 communication (/omniFPS/Robots/FloatingPlatform/PoseStamped)
-        #self.create_subscription(PoseStamped, "/vrpn_client_node/FP_exp_RL/pose", self.pose_callback, 10)
-        self.create_subscription(PoseStamped, "/omniFPS/Robots/FloatingPlatform/PoseStamped", self.pose_callback, 10)
+        # self.create_subscription(PoseStamped, "/vrpn_client_node/FP_exp_RL/pose", self.pose_callback, 10)
+        self.create_subscription(PoseStamped, "/omniFPS/Robots/FloatingPlatform/PoseStamped", self.pose_callback, 1)
+        self.create_subscription(PoseStamped, "/FloatingPlatform/goal", self.goal_callback, 1)
         # ROS2 communication (MultiBinaryArray message for thruster commands)
-        self.action_pub = self.create_publisher(ByteMultiArray, "/omniFPS/Robots/FloatingPlatform/thrusters/input", 10)
+        self.action_pub = self.create_publisher(ByteMultiArray, "/omniFPS/Robots/FloatingPlatform/thrusters/input", 1)
+        # self.action_pub = self.create_publisher(Int16MultiArray, "/omniFPS/Robots/FloatingPlatform/thrusters/input", 1)
+
         self.thruster_msg = ByteMultiArray()
+        # self.thruster_msg = Int16MultiArray()
         # Timer for repeating task loop (10 Hz)
-        self.timer = self.create_timer(0.1, self.task_loop)
+        self.timer = self.create_timer(0.1, self.task_loop) # TODO: Change to frequency variable (to be called from a launch file)
+
+        # Load the RL model
+        model_path = "models/FP_GoToPosition"   
+        self.load_model(model_path)
 
         self.get_logger().info(f"RL Task Node initialized for task: {self.task_name}")
         
+    def goal_callback(self, msg: PoseStamped):
+        """Callback for goal position messages."""
+        self.goal = np.array([msg.pose.position.x, msg.pose.position.y, msg.pose.position.z]) # Update goal position
+        self.get_logger().info(f"Goal position updated: {self.goal.tolist()}")
+
     def pose_callback(self, msg: PoseStamped):
         """Callback for OptiTrack pose messages."""
         # Update pose and quaternion
@@ -71,7 +90,7 @@ class RLTaskNode(Node):
         Converts a quaternion to a heading (yaw angle in radians).
         """
         _, x, y, z = quat
-        heading = np.arctan2(2.0 * (x * y + z), 1.0 - 2.0 * (y**2 + z**2))
+        heading = math.atan2(2.0 * (x * y + z), 1.0 - 2.0 * (y*y + z*z))
         return heading
    
     def get_angular_velocities(self, q: np.ndarray, dt: np.ndarray) -> np.ndarray:
@@ -120,6 +139,13 @@ class RLTaskNode(Node):
 
         return avg_linear_velocity, avg_angular_velocity
 
+    def get_rotation_matrix(self, heading: float) -> np.ndarray:
+        """Get the 2D rotation matrix for a given heading angle."""
+        return np.array([
+            [np.cos(heading), -np.sin(heading)],
+            [np.sin(heading), np.cos(heading)]
+        ])
+
     def build_state(self) -> torch.Tensor:
         """Build the state tensor for the task."""
         
@@ -135,7 +161,9 @@ class RLTaskNode(Node):
         target_heading = torch.atan2(position_error[1], position_error[0])
         target_heading_error = torch.atan2(torch.sin(target_heading - heading), torch.cos(target_heading - heading))
 
-        lin_vel = torch.tensor(self.robot_vel[:2], dtype=torch.float32)
+        R = self.get_rotation_matrix(-heading) # Rotate to robot frame 
+
+        lin_vel = torch.tensor(R@self.robot_vel[:2], dtype=torch.float32)
         yaw_rate = torch.tensor(self.robot_vel[5], dtype=torch.float32)
         self.state[0] = position_dist  # Scalar distance to goal
         self.state[1] = torch.cos(target_heading_error)
@@ -144,16 +172,51 @@ class RLTaskNode(Node):
         self.state[5] = yaw_rate  # Yaw rate
         self.state[6:] = self.prev_action  # Previous action
 
+    def load_model(self, log_dir: str):
+        """Load the RL model from a given path."""
+        # Placeholder function for loading the RL model
 
+        env_params_path = f"{log_dir}/params/env.yaml"
+        with open(env_params_path) as f:
+            env_cfg = yaml.load(f, Loader=yaml.FullLoader)
+
+        agent_params_path = f"{log_dir}/params/agent.yaml"
+        with open(agent_params_path) as f:
+            agent_params = yaml.safe_load(f)
+        print(env_cfg)
+
+        self.player = LightInferenceRunner(env_cfg, agent_params)
+        resume_path = log_dir + "/checkpoints/best_agent.pt"
+
+        self.player.build(resume_path)
+        self.action_space = spaces.Tuple([spaces.Discrete(2)] * 8)
+        
     def model_inference(self, state: torch.Tensor) -> torch.Tensor:
         """Placeholder function for RL model inference."""
-        # For demonstration purposes, return random actions.
-        # Replace this with a trained model's inference.
-        action = torch.rand(8, dtype=torch.float32) > 0.5
+        # For demonstration purposes, return random or constant actions.
+        #action = torch.rand(8, dtype=torch.float32) > 0.5 # random actions
+        # action = torch.tensor([0, 1, 0, 1, 1, 0, 1, 0], dtype=torch.float32) # constant actions
         # concat the air bearing value
-        action = torch.cat([self.air_bearing, action], dim=0)
+        """Performs model inference and returns binary thruster actions."""
+        with torch.inference_mode():
+            actions = self.player.act(state, timestep=0, timesteps=0)[0]
+        # Ensure the output is correctly shaped
+        actions = unflatten_tensorized_space(self.action_space, actions)
+        # Convert to tensor and enforce binary values
+        actions = torch.cat(actions).squeeze()
+        #print min and max values of the actions
+        print(f"Min value of actions: {actions.min()}")
+        print(f"Max value of actions: {actions.max()}")
+        # Apply binary thresholding: Any value > 0.5 becomes 1, else 0
+        binary_actions = (actions > 0.5).int()
 
-        
+        # Concatenate the air bearing value
+        action = torch.cat([self.air_bearing, binary_actions], dim=0)
+
+        print(f"Final Binary Actions: {action.tolist()}")
+        return action
+
+
         return action
 
     def validate_task_completion(self) -> bool:
@@ -170,7 +233,20 @@ class RLTaskNode(Node):
 
         # Return True if goal is maintained for enough steps
         return self.successful_steps >= self.steps_to_validate
-
+  
+    def turn_off_thrusters(self):
+        """Turn off all thrusters."""
+        # turn-off all trhusters and 1 sec delay later the air-bearing
+        self.thruster_msg.data = [1, 0, 0, 0, 0, 0, 0, 0, 0]
+        self.action_pub.publish(self.thruster_msg)
+        self.get_logger().info("Thrusters turned off.")
+        self.thruster_msg.data = [0] * 9 
+        # wait 1 sec and then turn off the air-bearing (use the ros node to sleep)
+        time.sleep(1)
+        self.action_pub.publish(self.thruster_msg)
+        self.get_logger().info("Air-bearing turned off.")
+        
+    
     def task_loop(self):
         """Main task loop."""
         self.build_state()
@@ -183,21 +259,30 @@ class RLTaskNode(Node):
         # Publish the action to the robot (e.g., thruster commands using ByteMultiArray -- need to convert to bytes)
         # byte_action = [bytes([value]) for value in action.int().tolist()]
         self.thruster_msg.data = [value.to_bytes(1, byteorder='little') for value in action.int().tolist()]
-
+        # Publish the action as Int16MultiArray
+        # self.thruster_msg.data = action.int().tolist()
 
         self.action_pub.publish(self.thruster_msg)
         # Log the step details
         self.get_logger().info(f"Step: {self.current_step}, State: {self.state.tolist()}, Action: {action.tolist()}")
 
-        # Update the previous action
-        self.prev_action = action
+        # Update the previous action (removing the air bearing value)
 
-        # Check for task completion
+        self.prev_action = action[1:]
+
+        self.current_step += 1
+
+        # create condition to stop the loop (after num_steps_episode are reached or when task completion)
         if self.validate_task_completion():
             self.get_logger().info("Task successfully completed!")
             self.timer.cancel()  # Stop the task loop
+            # self.turn_off_thrusters()
 
-        self.current_step += 1
+
+        if self.current_step >= self.num_steps_episode:
+            self.get_logger().info("Task timed out!")
+            self.timer.cancel()
+            # self.turn_off_thrusters()
 
 
 def main(args=None):
