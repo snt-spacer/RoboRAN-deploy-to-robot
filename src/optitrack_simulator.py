@@ -9,7 +9,7 @@ import numpy as np
 class OptiTrackSimulator(Node):
     def __init__(self):
         super().__init__("optitrack_simulator")
-        self.pose_pub = self.create_publisher(PoseStamped, "/vrpn_client_node/FP_exp_RL/pose", 10)
+        self.pose_pub = self.create_publisher(PoseStamped, "/vrpn_client_node/FP_exp_RL/PoseStamped", 10)
         self.timer = self.create_timer(0.1, self.publish_pose)  # 10 Hz
         self.t = 0.0
 

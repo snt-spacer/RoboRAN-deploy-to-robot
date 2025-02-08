@@ -17,8 +17,8 @@ class GoalPublisherNode(Node):
 
         # Default goal position
         self.goal = Point()
-        self.goal.x = 2.5  # Example goal x
-        self.goal.y = 1.5  # Example goal y
+        self.goal.x = 5.0  # Example goal x
+        self.goal.y = 2.5  # Example goal y
         self.goal.z = 0.0  # Example goal z (not needed for 2D tasks)
 
         self.get_logger().info("Goal Publisher Node Initialized.")
