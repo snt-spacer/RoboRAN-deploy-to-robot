@@ -24,7 +24,7 @@ dist/
 
 # Logs and temporary files
 *.log
-
+exp_logs/
 # Jupyter Notebook checkpoints
 .ipynb_checkpoints
 

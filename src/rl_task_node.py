@@ -13,16 +13,20 @@ from typing import Tuple
 from gymnasium import spaces
 from skrl_inference.light_inference_runner import LightInferenceRunner
 from skrl.utils.spaces.torch import unflatten_tensorized_space
-
+from .trajectory_plotter import plot_episode_data
+import datetime
+import os
 
 class RLTaskNode(Node):
-    def __init__(self, task_name: str, goal: Tuple[float, float], use_virtual_lab: bool = True):
+    def __init__(self, task_name: str, goal: Tuple[float, float], num_steps_episode: int = 200, use_virtual_lab: bool = True, save_history: bool = False):
         super().__init__("rl_task_node")
 
         # Mode Selection
         self.use_virtual_lab = use_virtual_lab
         self.topic_prefix = "/omniFPS/Robots/FloatingPlatform" if self.use_virtual_lab else "/vrpn_client_node/FP_exp_RL"
-
+        self.save_history = save_history # Save episode data for analysis
+        if self.save_history:
+            self.episode_data = {"position": [], "lin_vel": [], "ang_vel": [], "dist_to_goal": [], "heading_error": [], "actions": []}
         # Task details
         self.task_name = task_name
         self.goal = torch.tensor(goal, dtype=torch.float32)
@@ -31,7 +35,7 @@ class RLTaskNode(Node):
 
         # State representation
         self.prev_action = torch.zeros(8, dtype=torch.float32)
-        self.state = torch.zeros(14, dtype=torch.float32)
+        self.state = torch.zeros(14, dtype=torch.float32) # [0: target_dist, 1-2: target_heading, 3-4: lin_vel, 5: yaw_rate, 6-14: prev_action]
         self.air_bearing = torch.tensor((1,), dtype=torch.float32)
 
         # Robot state variables
@@ -42,7 +46,7 @@ class RLTaskNode(Node):
         # Execution tracking
         self.current_step = 0
         self.successful_steps = 0
-        self.num_steps_episode = 1000
+        self.num_steps_episode = num_steps_episode
 
         # Buffers for velocity computation
         self.pose_buffer = []
@@ -111,6 +115,13 @@ class RLTaskNode(Node):
 
         return avg_linear_velocity, avg_angular_velocity
 
+    def plot_episode_data(self):
+        """Plot and save the episode data for analysis."""
+        save_path = "exp_logs/" + self.task_name +"/exp_"+ datetime.datetime.now().strftime("%Y%m%d-%H%M%S") 
+        os.makedirs(save_path, exist_ok=True)
+        # save as csv: TODO 
+    
+        plot_episode_data(self.episode_data, save_path)
     # --------------------- Callbacks ---------------------
 
     def goal_callback(self, msg: PoseStamped):
@@ -232,24 +243,31 @@ class RLTaskNode(Node):
         self.action_pub.publish(self.thruster_msg)
         self.prev_action = action[1:]
         self.current_step += 1
+        # Save episode data for analysis
+        if self.save_history:
+            self.episode_data["position"].append(self.robot_position[:2])
+            self.episode_data["lin_vel"].append(self.robot_vel[:2])
+            self.episode_data["ang_vel"].append(self.robot_vel[5])
+            self.episode_data["dist_to_goal"].append(self.state[0].item())
+            self.episode_data["heading_error"].append(math.atan2(self.state[2].item(), self.state[1].item()))
+            self.episode_data["actions"].append(action.int().tolist())
         # Logs
         self.get_logger().info(f"Step: {self.current_step}, State: {self.state.tolist()}, Action: {action.tolist()}")
         # Check if goal is reached
-        if self.validate_task_completion():
-            self.get_logger().info(f"Task completed in {self.current_step} steps.")
+        if self.validate_task_completion() or self.current_step >= self.num_steps_episode:
+            self.get_logger().info(f"Task completed in {self.current_step} steps." if self.validate_task_completion() else f"Task reached (max) {self.num_steps_episode} steps.")  
             self.turn_off_thrusters()
-            self.timer.cancel()
-        if self.current_step >= self.num_steps_episode:
-            self.get_logger().info(f"Task failed to complete in {self.num_steps_episode} steps.")
-            self.turn_off_thrusters()
-            self.timer.cancel()
+            if self.save_history:
+                self.plot_episode_data()
+            self.destroy_node()
+            rclpy.shutdown()
 
 
 def main(args=None):
     rclpy.init(args=args)
 
     # Example task: "go_to_position" with goal (5.0, 5.0)
-    task_node = RLTaskNode("go_to_position", goal=(5.0, 5.0), use_virtual_lab=True)
+    task_node = RLTaskNode("go_to_position", goal=(5.0, 5.0), num_steps_episode=50, use_virtual_lab=False, save_history=True)
 
     try:
         rclpy.spin(task_node)
