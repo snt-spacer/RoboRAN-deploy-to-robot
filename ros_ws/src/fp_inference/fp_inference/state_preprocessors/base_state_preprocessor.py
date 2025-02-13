@@ -309,6 +309,7 @@ class BaseStatePreProcessor(Registerable):
     
     def reset(self) -> None:
         """Reset the state processor to its initial state."""
+        self.build_logs()
         self._last_time = None
         self.is_primed = False
         self._step = 0
