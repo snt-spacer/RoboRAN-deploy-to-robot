@@ -21,6 +21,7 @@ setup(
     entry_points={
         'console_scripts': [
             'rl_task_node = fp_inference.rl_task_node:main',
+            'rl_task_node_v2 = fp_inference.rl_task_node_v2:main',
         ],
     },
 )

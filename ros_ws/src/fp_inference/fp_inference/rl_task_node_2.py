@@ -54,6 +54,9 @@ class RLTaskNode(Node):
         terminate_on_completion_desc = ParameterDescriptor(description='Terminate the node when the goal is reached.')
         self.declare_parameter('terminate_on_completion', False, terminate_on_completion_desc)
         self._terminate_on_completion = self.get_parameter('terminate_on_completion').get_parameter_value().bool_value
+        logs_save_path_desc = ParameterDescriptor(description='The path where the logs will be saved.')
+        self.declare_parameter('logs_save_path', None, logs_save_path_desc)
+        self._logs_save_path = self.get_parameter('logs_save_path').get_parameter_value().string_value
 
         # Build the task
         self.build()
