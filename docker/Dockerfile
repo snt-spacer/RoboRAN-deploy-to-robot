@@ -18,9 +18,18 @@ RUN apt-get update && apt-get install -y \
 # Install Python dependencies
 RUN pip3 install --no-cache-dir -r requirements.txt
 
+RUN git clone https://github.com/elharirymatteo/skrl.git skrl
+RUN pip3 install -e skrl/.
+
 # Source ROS2 setup
 SHELL ["/bin/bash", "-c"]
 RUN echo "source /opt/ros/humble/setup.bash" >> ~/.bashrc
+
+WORKDIR /RANS_DeployToRobot/ros2_ws
+RUN colcon build
+
+# Source ROS2 workspace setup
+RUN echo "source /RANS_DeployToRobot/ros2_ws/install/setup.bash" >> ~/.bashrc
 
 # Default command
 CMD ["bash"]
