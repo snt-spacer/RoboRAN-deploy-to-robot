@@ -1,5 +1,6 @@
 from geometry_msgs.msg import PoseStamped
 import torch
+import copy
 
 from .base_state_preprocessor import BaseStatePreProcessor
 from . import Registerable
@@ -79,31 +80,6 @@ class OptitrackStatePreProcessor(Registerable, BaseStatePreProcessor):
         queue_tensor = torch.cat((queue_tensor[1:], tensor.unsqueeze(0)))
         return queue_tensor
 
-    def update_state(self, position: torch.Tensor | None = None, quaternion: torch.Tensor | None = None, time: float| None = None, **kwargs) -> None:
-        """Update the state processor with a new pose. If the state processor is primed, update the state.
-        When primed, the state can be accessed through the state variables.
-
-        Args:
-            position (torch.Tensor): The position tensor to update the state processor with.
-            quaternion (torch.Tensor): The quaternion tensor to update the state processor with.
-            time (float): The timestamp to update the state processor with."""
-        
-        # Update buffers
-        self.append_right_tensor_queue(self._position_buffer, position)
-        self.append_right_tensor_queue(self._quaternion_buffer, quaternion)
-        self.append_right_tensor_queue(self._time_buffer, time)
-        # Update the step count and priming status
-        self._step += 1
-        self._is_primed = self._step >= self._buffer_size
-        # If the state processor is primed, update the state
-        if self._is_primed:
-            # Update the position and quaternion
-            self._position = position.unsqueeze(0)
-            self._quaternion = quaternion.unsqueeze(0)
-            # Update velocities
-            self.update_linear_velocities()
-            self.update_angular_velocities()
-
     def update_state_ROS(self, pose: PoseStamped, **kwargs) -> None:
         """Update the state processor with a new pose message. If the state processor is primed, update the state.
         When primed, the state can be accessed through the state variables.
@@ -114,12 +90,13 @@ class OptitrackStatePreProcessor(Registerable, BaseStatePreProcessor):
         # Convert ROS message to tensors
         position = torch.tensor([pose.pose.position.x, pose.pose.position.y, pose.pose.position.z], device=self._device)
         quaternion = torch.tensor([pose.pose.orientation.w, pose.pose.orientation.x, pose.pose.orientation.y, pose.pose.orientation.z], device=self._device)
-        time = torch.tensor(self.get_clock().now().nanoseconds, device=self._device)
+        time = torch.tensor(pose.header.stamp.nanosec, device=self._device)
         # Update buffers
         self.append_right_tensor_queue(self._position_buffer, position)
         self.append_right_tensor_queue(self._quaternion_buffer, quaternion)
         self.append_right_tensor_queue(self._time_buffer, time)
         # Update the step count and priming status
+        self._time = pose.header.stamp.sec + pose.header.stamp.nanosec * 1e-9
         self._step += 1
         self._is_primed = self._step >= self._buffer_size
         # If the state processor is primed, update the state

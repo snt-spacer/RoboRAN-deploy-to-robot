@@ -27,6 +27,7 @@ class BaseStatePreProcessor(Registerable):
         self.ROS_QUEUE_SIZE = 1
 
         # State variables
+        self._time: torch.Tensor = None # [1]
         self._position: torch.Tensor = None # [1, 3]
         self._heading: torch.Tensor = None # [1, 1]
         self._quaternion: torch.Tensor = None # [1, 4]
@@ -47,6 +48,7 @@ class BaseStatePreProcessor(Registerable):
         # State priming (need to wait for a few steps before a reliable state is available)
         self._is_primed = False
         self._step = 0
+        self._start_time = -1
 
         # Log hook
         self.build_logs()
@@ -61,6 +63,8 @@ class BaseStatePreProcessor(Registerable):
         self._logs["angular_velocities_world"] = 0
         self._logs["linear_velocities_body"] = 0
         self._logs["angular_velocities_body"] = 0
+        self._logs["ros_time"] = 0
+        self._logs["elapsed_time"] = 0
 
     def update_logs(self):
         self._logs["position_world"] = self._position
@@ -70,6 +74,10 @@ class BaseStatePreProcessor(Registerable):
         self._logs["angular_velocities_world"] = self._angular_velocities_world
         self._logs["linear_velocities_body"] = self._linear_velocities_body
         self._logs["angular_velocities_body"] = self._angular_velocities_body
+        self._logs["ros_time"] = torch.tensor([self._time], device=self._device)
+        if self._start_time == -1:
+            self._start_time = copy.copy(self._time)
+        self._logs["elapsed_time"] = torch.tensor([self._time - self._start_time], device=self._device)
 
     @property
     def logs(self):
@@ -87,6 +95,12 @@ class BaseStatePreProcessor(Registerable):
         """Return whether the state processor is primed and ready to provide state information."""
 
         return self._is_primed
+    
+    @property
+    def step(self) -> int:
+        """Return the current step count."""
+        
+        return self._step 
 
     @property
     def position(self) -> torch.Tensor | None:
@@ -236,7 +250,7 @@ class BaseStatePreProcessor(Registerable):
     def get_linear_velocities_body(self):
         """Compute linear velocities in the body frame."""
 
-        self._linear_velocities_body[0] = self.rotation_matrix[0] @ self.linear_velocities_world[0]
+        self._linear_velocities_body[0, :2] = self.rotation_matrix[0] @ self.linear_velocities_world[0, :2]
 
     def get_pose_in_local_frame(self, pose: torch.Tensor) -> torch.Tensor:
         """Transform a pose from the world frame to the local frame. While the tensor are provided
@@ -287,18 +301,21 @@ class BaseStatePreProcessor(Registerable):
         quaternion_transformed = self.get_quat_from_heading(heading_transformed)
         return torch.cat((position_transformed, quaternion_transformed), dim=1)
     
-    def update_state(self, *args, **kwargs) -> None:
-        raise NotImplementedError("Update state method not implemented")
-
     def update_state_ROS(self, *args, **kwargs) -> None:
+        """Update the state processor with a new ROS message. If the state processor is primed, update the state.
+        When primed, the state can be accessed through the state variables."""
+
         raise NotImplementedError("Update state ROS method not implemented")
     
     def reset(self) -> None:
         """Reset the state processor to its initial state."""
+        self._last_time = None
         self.is_primed = False
         self._step = 0
+        self._start_time = -1
 
         # Reset state variables
+        self._time = None
         self._position = None
         self._quaternion = None
         self._heading = None
