@@ -1,4 +1,5 @@
 from fp_inference.state_preprocessors import BaseStatePreProcessor
+import torch
 import copy
 
 class BaseFormater:
@@ -44,7 +45,7 @@ class BaseFormater:
             self._last_preprocessor_step = copy.copy(self._state_preprocessor.step)
         return self.get_observation()
 
-    def get_observation(self):
+    def get_observation(self, action: torch.Tensor | None = None):
         raise NotImplementedError("Get observation method not implemented")
 
     def update_goal(self, **kwargs):
