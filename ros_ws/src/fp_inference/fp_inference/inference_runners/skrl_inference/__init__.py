@@ -4,4 +4,4 @@
 # SPDX-License-Identifier: BSD-3-Clause
 
 from .inference_helpers import *
-from .light_inference_runner import LightInferenceRunner
+from .inference_runner import SKRLInferenceRunner

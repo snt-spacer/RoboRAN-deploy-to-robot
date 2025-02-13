@@ -1,17 +1,16 @@
-
 from .base_inference_runner import BaseInferenceRunner
 
 class Registerable:
     def __init_subclass__(cls: BaseInferenceRunner):
         cls_name = cls.__name__[:-15] # Remove "InferenceRunner" from the class name
-        ObservationFormaterFactory.register(cls_name, cls)
+        InferenceRunnerFactory.register(cls_name, cls)
 
 
-class ObservationFormaterFactory:
+class InferenceRunnerFactory:
     registry = {}
 
     @classmethod
-    def register(cls, name: str, sub_class: Registerable):
+    def register(cls, name: str, sub_class: Registerable) -> BaseInferenceRunner:
         if name in cls.registry:
             raise ValueError(f"Module {name} already registered.")
         cls.registry[name] = sub_class
@@ -31,3 +30,5 @@ class ObservationFormaterFactory:
         print("=============================================")
 
         return cls.registry[cls_name](*args, **kwargs)
+
+from .skrl_inference import SKRLInferenceRunner
