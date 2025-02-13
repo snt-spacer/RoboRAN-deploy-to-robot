@@ -1,4 +1,5 @@
 from gymnasium import spaces
+from typing import Any
 import torch
 import copy
 
@@ -10,7 +11,6 @@ class BaseRobotInterface:
 
         # Action space
         self._action_space: spaces = None
-        self._action: torch.Tensor = None
 
         # Lazy updates of state variables
         self._step_logs: int = 0
@@ -24,9 +24,10 @@ class BaseRobotInterface:
     def build_logs(self):
         # Log hook
         self._logs = {}
+        self._logs["actions"] = None
 
     def update_logs(self):
-        raise NotImplementedError("update_logs method must be implemented in the child class.")
+        self._logs["actions"] = self.last_actions
     
     @property
     def logs(self) -> dict[str, torch.Tensor]: 
@@ -41,14 +42,18 @@ class BaseRobotInterface:
     
     @property
     def last_actions(self) -> torch.Tensor:
-        raise NotImplementedError("last_actions property must be implemented in the child class.")
+        self._last_actions
     
     @property
     def action_space(self) -> spaces:
         return self._action_space
     
-    def cast_actions(self, actions: torch.Tensor):
-        raise NotImplementedError("cast_actions method must be implemented in the child class.")
+    @property
+    def kill_action(self) -> Any:
+        raise NotImplementedError("Kill action not implemented")
+
+    def cast_actions(self, actions: torch.Tensor) -> Any:
+        self._step += 1
     
     def reset(self):
         self._step = 0

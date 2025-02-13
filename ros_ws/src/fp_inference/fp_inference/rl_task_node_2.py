@@ -132,6 +132,10 @@ class RLTaskNode(Node):
                 self.prime_state_preprocessor()
                 self.run_task()
                 self.get_logger().info("Task completed!")
+                # Reset the robot interface
+                self.robot_interface.reset()
+                # Send immobilization command
+                self.action_pub(self.robot_interface.kill_action)
                 # Task is completed, save the logs.
                 self.data_logger.save()
                 # Returns if the task is completed
@@ -154,11 +158,25 @@ class RLTaskNode(Node):
             obs_rate.sleep()
         self.get_logger().info("State preprocessor is ready!")
 
+    def shutdown(self):
+        """Shutdown the node."""
+        self.get_logger().info("Unexpected shutdown! Trying to kill the robot.")
+        self.action_pub(self.robot_interface.kill_action)
+        self.get_logger().info("Trying to save the logs.")
+        self.data_logger.save()
+        self.destroy_node()
+        rclpy.shutdown()
+
+    def clean_termination(self):
+        self.destroy_node()
+        rclpy.shutdown()
+
 def main(args=None):
     rclpy.init(args=args)
 
     task_node = RLTaskNode()
     task_node.run()
+    task_node.clean_termination()
 
 
 if __name__ == "__main__":

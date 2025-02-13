@@ -31,3 +31,5 @@ class RobotInterfaceFactory:
 
         return cls.registry[cls_name](*args, **kwargs)
 
+from .virtual_floating_platform import VirtualFloatingPlatformInterface
+from .floating_platform import FloatingPlatformInterface
