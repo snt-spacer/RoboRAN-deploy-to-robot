@@ -1,4 +1,4 @@
-from .base_formater import BaseFormater
+from .base_formater import BaseFormater, BaseFormaterCfg
 
 class Registerable:
     def __init_subclass__(cls: BaseFormater):

@@ -1,9 +1,20 @@
 from fp_inference.state_preprocessors import BaseStatePreProcessor
+from dataclasses import dataclass
 import torch
 import copy
 
+class BaseFormaterCfg:
+    pass
+
 class BaseFormater:
-    def __init__(self, state_preprocessor: BaseStatePreProcessor, device: str = 'cuda', **kwargs):
+    def __init__(
+            self,
+            state_preprocessor: BaseStatePreProcessor,
+            device: str = 'cuda',
+            max_steps: int = 500,
+            task_cfg: BaseFormaterCfg = BaseFormaterCfg(),
+            **kwargs,
+        ) -> None:
 
         # General parameters
         self._device = device
@@ -12,10 +23,15 @@ class BaseFormater:
         self.ROS_CALLBACK = self.update_goal_ROS
         self.ROS_QUEUE_SIZE = 1
 
-        # Lazy goal update
-        self._observation_step = 0
+        # Task parameters
+        self._max_steps = max_steps
+        self._task_cfg = task_cfg
+        self._task_completed = False
+        self._task_is_live = False
+        self._observation = None
+
+        # Lazy updates
         self._step = 0
-        self._last_preprocessor_step = 0
         self._step_logs = 0
 
         # Log hook
@@ -28,7 +44,12 @@ class BaseFormater:
         raise NotImplementedError("Update logs method not implemented")
 
     @property
+    def task_is_live(self):
+        return self._task_is_live
+
+    @property
     def logs(self):
+        # Update the logs if the step has changed
         if self._step_logs != self._step:
             self._step_logs = copy.copy(self._step)
             self.update_logs()
@@ -40,20 +61,28 @@ class BaseFormater:
 
     @property
     def observation(self):
-        if (self._observation_step != self._step) or (self._state_preprocessor.step != self._last_preprocessor_step):
-            self._observation_step = copy.copy(self._step)
-            self._last_preprocessor_step = copy.copy(self._state_preprocessor.step)
-        return self.get_observation()
+        return self._observation
+    
+    def check_task_completion(self):
+        raise NotImplementedError("Check task completion method not implemented")
 
-    def get_observation(self, action: torch.Tensor | None = None):
-        raise NotImplementedError("Get observation method not implemented")
+    @property
+    def task_completed(self):
+        return self._task_completed
 
-    def update_goal(self, **kwargs):
-        raise NotImplementedError("Update goal method not implemented")
+    def format_observation(self, actions: torch.Tensor | None = None) -> None:
+        if actions is None:
+            raise ValueError("Actions must be provided to the observation formater.")
+
+        self._step += 1
 
     def update_goal_ROS(self, **kwargs):
         raise NotImplementedError("Update goal ROS method not implemented")
 
     def reset(self, **kwargs):
-        raise NotImplementedError("Reset method not implemented")
-    
+        self.build_logs()
+        self._task_completed = False
+        self._task_is_live = False
+        self._step = 0
+        self._step_logs = 0
+        self._observation = None
