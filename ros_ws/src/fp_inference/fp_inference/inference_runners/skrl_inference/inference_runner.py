@@ -129,7 +129,13 @@ class SKRLInferenceRunner:
         for size in enumerate(self._policy.get_specification().get("rnn", {}).get("sizes", [])):
             self._rnn_states["rnn"].append(torch.zeros(size, dtype=torch.float32, device=self._device))
 
-    def build_actor(self, env: dict[str, Any], cfg: dict[str, Any], device: str):
+    def build_actor(self, env: dict[str, Any], cfg: dict[str, Any], device: str) -> None:
+        """Build the actor based on the agent class.
+
+        Args:
+            env: The environment configuration.
+            cfg: The agent configuration.
+            device: The device to run the inference on."""
 
         agent_class = cfg.get("agent", {}).get("class", "").lower()
 
@@ -147,13 +153,7 @@ class SKRLInferenceRunner:
             else:
                 self.act = self.sac_act
 
-    def ppo_act(
-        self,
-        states: torch.Tensor,
-        timestep: int = 0,
-        timesteps: int = 0,
-        **kwargs,
-        ) -> tuple[torch.Tensor, torch.Tensor | None, Mapping[str, torch.Tensor | Any]]:
+    def ppo_act(self, states: torch.Tensor, timestep: int = 0, timesteps: int = 0, **kwargs) ->torch.Tensor:
         """Perform the PPO action.
         
         Args:
@@ -161,7 +161,8 @@ class SKRLInferenceRunner:
             timestep: The current timestep.
             timesteps: The total number of timesteps.
         
-        Returns:"""
+        Returns:
+            torch.Tensor: The action to perform."""
 
         # sample random actions
         if timestep < 0:
@@ -173,9 +174,17 @@ class SKRLInferenceRunner:
 
         return actions
 
-    def ppo_rnn_act(
-        self, states: torch.Tensor, timestep: int = 0, timesteps: int = 0, **kwargs
-    ) -> tuple[torch.Tensor, torch.Tensor | None, Mapping[str, torch.Tensor | Any]]:
+    def ppo_rnn_act(self, states: torch.Tensor, timestep: int = 0, timesteps: int = 0, **kwargs) -> torch.Tensor:
+        """Perform the PPO action with RNN.
+        
+        Args:
+            states: The states to perform the action on.
+            timestep: The current timestep.
+            timesteps: The total number of timesteps.
+        
+        Returns:
+            torch.Tensor: The action to perform."""
+        
         # sample random actions
         if timestep < 0:
             return self._policy.random_act(
@@ -193,9 +202,17 @@ class SKRLInferenceRunner:
 
         return actions
 
-    def sac_act(
-        self, states: torch.Tensor, timestep: int = 0, timesteps: int = 0, **kwargs
-    ) -> tuple[torch.Tensor, torch.Tensor | None, Mapping[str, torch.Tensor | Any]]:
+    def sac_act(self, states: torch.Tensor, timestep: int = 0, timesteps: int = 0, **kwargs) -> torch.Tensor:
+        """Perform the SAC action.
+
+        Args:
+            states: The states to perform the action on.
+            timestep: The current timestep.
+            timesteps: The total number of timesteps.
+        
+        Returns:
+            torch.Tensor: The action to perform."""
+        
         # sample random actions
         if timestep < 0:
             return self._policy.random_act({"states": self._state_preprocessor(states)}, role="policy")
@@ -206,10 +223,18 @@ class SKRLInferenceRunner:
 
         return actions
 
-    def sac_rnn_act(
-        self, states: torch.Tensor, timestep: int = 0, timesteps: int = 0, **kwargs
-    ) -> tuple[torch.Tensor, torch.Tensor | None, Mapping[str, torch.Tensor | Any]]:
-        # sample random actions
+    def sac_rnn_act(self, states: torch.Tensor, timestep: int = 0, timesteps: int = 0, **kwargs) -> torch.Tensor:
+        """Perform the SAC action with RNN.
+        
+        Args:
+            states: The states to perform the action on.
+            timestep: The current timestep.
+            timesteps: The total number of timesteps.
+
+        Returns:
+            torch.Tensor: The action to perform."""
+        
+        # sample random action
         if timestep < 0:
             return self._policy.random_act(
                 {"states": self._state_preprocessor(states), **self._rnn_states}, role="policy"

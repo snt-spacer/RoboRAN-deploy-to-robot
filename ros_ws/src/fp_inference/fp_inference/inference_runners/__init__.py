@@ -10,13 +10,13 @@ class InferenceRunnerFactory:
     registry = {}
 
     @classmethod
-    def register(cls, name: str, sub_class: Registerable) -> BaseInferenceRunner:
+    def register(cls, name: str, sub_class: Registerable) -> None:
         if name in cls.registry:
             raise ValueError(f"Module {name} already registered.")
         cls.registry[name] = sub_class
 
     @classmethod
-    def create(cls, cls_name, *args, **kwargs):
+    def create(cls, cls_name, *args, **kwargs) -> BaseInferenceRunner:
 
         if cls_name not in cls.registry:
             raise ValueError(f"Module {cls_name} not registered.")
