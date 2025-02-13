@@ -1,0 +1,316 @@
+from geometry_msgs.msg import PoseStamped
+from . import Registerable
+import torch
+import copy
+
+class BaseStatePreProcessor(Registerable):
+    """A class to process state information from a robot. The state processor maintains a buffer of the robot's position,
+    quaternion, and time. The state processor can compute the heading, rotation matrix, linear velocities in the world frame,
+    and linear velocities in the body frame. The state processor is primed after a certain number of steps, after which the
+    state can be accessed through the state variables.
+    All the operations are done on the GPU to ensure mimum CPU-GPU data transfer.
+    """
+
+    def __init__(self, buffer_size: int = 30, device: str = "cuda", **kwargs):
+        """Initialize the state processor with a buffer size and device.
+
+        Args:
+            buffer_size (int, optional): The size of the state buffer. Defaults to 30.
+            device (str, optional): The device to perform computations on. Defaults to "cuda".
+        """
+
+        # General parameters
+        self._device = device
+        self._buffer_size = buffer_size
+        self.ROS_TYPE = None
+        self.ROS_CALLBACK = self.update_state_ROS
+        self.ROS_QUEUE_SIZE = 1
+
+        # State variables
+        self._position: torch.Tensor = None # [1, 3]
+        self._heading: torch.Tensor = None # [1, 1]
+        self._quaternion: torch.Tensor = None # [1, 4]
+        self._rotation_matrix: torch.Tensor = None # [1, 2, 2]
+        self._tranformation_matrix: torch.Tensor = None # [1, 3, 3]
+        self._linear_velocities_world: torch.Tensor = None # [1, 3]
+        self._angular_velocities_world: torch.Tensor = None # [1, 3]
+        self._linear_velocities_body: torch.Tensor = None # [1, 3]
+        self._angular_velocities_body: torch.Tensor = None # [1, 3]
+
+        # Lazy updates of state variables
+        self._step_heading: int = 0
+        self._step_rotation_matrix: int = 0
+        self._step_linear_velocity_body: int = 0
+        self._step_angular_velocity_body: int = 0
+        self._step_logs: int = 0
+
+        # State priming (need to wait for a few steps before a reliable state is available)
+        self._is_primed = False
+        self._step = 0
+
+        # Log hook
+        self.build_logs()
+
+    def build_logs(self):
+        # Log hook
+        self._logs = {}
+        self._logs["position_world"] = 0
+        self._logs["quaternion_world"] = 0
+        self._logs["heading_world"] = 0
+        self._logs["linear_velocities_world"] = 0
+        self._logs["angular_velocities_world"] = 0
+        self._logs["linear_velocities_body"] = 0
+        self._logs["angular_velocities_body"] = 0
+
+    def update_logs(self):
+        self._logs["position_world"] = self._position
+        self._logs["quaternion_world"] = self._quaternion
+        self._logs["heading_world"] = self._heading
+        self._logs["linear_velocities_world"] = self._linear_velocities_world
+        self._logs["angular_velocities_world"] = self._angular_velocities_world
+        self._logs["linear_velocities_body"] = self._linear_velocities_body
+        self._logs["angular_velocities_body"] = self._angular_velocities_body
+
+    @property
+    def logs(self):
+        if self._step_logs != self._step:
+            self._step_logs = copy.copy(self._step)
+            self.update_logs()
+        return self._logs
+
+    @property 
+    def logs_names(self):
+        return self._logs.keys()
+
+    @property
+    def is_primed(self) -> bool:
+        """Return whether the state processor is primed and ready to provide state information."""
+
+        return self._is_primed
+
+    @property
+    def position(self) -> torch.Tensor | None:
+        """Return the current position (x, y, z). If the position is not available, return None.
+        
+        Returns:
+            torch.Tensor[N, 3] | None: The position if available, otherwise None."""
+        
+        return self._position
+
+    @property
+    def heading(self) -> torch.Tensor | None:
+        """Return the current heading (yaw angle in radians). If the heading is not available, return None.
+        
+        Returns:
+            torch.Tensor[N, 1] | None: The heading if available, otherwise None."""
+        
+        if (self.quaternion is not None) and (self._step_heading != self._step):
+            self._heading = self.get_heading_from_quat(self.quaternion)
+            # Update the step count for lazy updates
+            self._step_heading = copy.copy(self._step)
+        return self._heading
+    
+    @property
+    def quaternion(self) -> torch.Tensor | None:
+        """Return the current quaternion. Quaternion is in the form (w, x, y, z).
+        If the quaternion is not available, return None.
+
+        Returns:
+            torch.Tensor[N, 4] | None: The quaternion if available, otherwise None."""
+        
+        return self._quaternion
+
+    @property
+    def rotation_matrix(self) -> torch.Tensor | None:
+        """Return the current rotation matrix. The format is a 2x2 matrix. If the rotation matrix is not available, return None.
+        
+        Returns:
+            torch.Tensor[N, 2, 2] | None: The rotation matrix if available, otherwise None.""" 
+        
+        if (self.quaternion is not None) and (self._step_rotation_matrix != self._step):
+            self._rotation_matrix = self.get_rotation_matrix_from_heading(self.heading)
+            # Update the step count for lazy updates
+            self._step_rotation_matrix = copy.copy(self._step)
+        return self._rotation_matrix
+
+    @property
+    def linear_velocities_world(self) -> torch.Tensor | None:
+        """Return the linear velocities in the world frame. If the velocities are not available, return None.
+        
+        Returns:
+            torch.Tensor[N, 3] | None: The linear velocities in the world frame if available, otherwise None."""
+        
+        return self._linear_velocities_world
+
+    @property
+    def angular_velocities_world(self) -> torch.Tensor | None:
+        """Return the angular velocities in the world frame. If the velocities are not available, return None.
+        
+        Returns:
+            torch.Tensor[N, 3] | None: The angular velocities in the world frame if available, otherwise None."""
+        
+        return self._angular_velocities_world
+
+    @property
+    def linear_velocities_body(self) -> torch.Tensor | None:
+        """Return the linear velocities in the body frame. If the velocities are not available, return None.
+        
+        Returns:
+            torch.Tensor[N, 3] | None: The linear velocities in the body frame if available, otherwise None."""
+        
+        if (self.linear_velocities_world is not None) and (self._step_linear_velocity_body != self._step):
+            self.get_linear_velocities_body()
+            # Update the step count for lazy updates
+            self._step_linear_velocity_body = copy.copy(self._step)
+        return self._linear_velocities_body
+
+    @property
+    def angular_velocities_body(self) -> torch.Tensor | None:
+        """Return the angular velocities in the body frame. If the velocities are not available, return None.
+        Note: The angular velocities in the body frame are the same as the angular velocities in the world frame.
+        
+        Returns:
+            torch.Tensor[N, 3] | None: The angular velocities in the body frame if available, otherwise None."""
+        
+        if (self.angular_velocities_world is not None) and (self._step_angular_velocity_body != self._step):
+            self._angular_velocities_body = self._angular_velocities_world
+            # Update the step count for lazy updates
+            self._step_angular_velocity_body = copy.copy(self._step)
+        return self._angular_velocities_body
+    
+    @staticmethod
+    def get_heading_from_quat(quaternion: torch.Tensor) -> None:
+        """Convert a quaternion to a heading (yaw angle in radians).
+        
+        Args:
+            quaternion (torch.Tensor): The quaternion in the form (w, x, y, z). Tensor shape: [N, 4]
+        
+        Returns:
+            torch.Tensor: The heading in radians. Tensor shape: [N, 1]"""
+
+        return torch.arctan2(2.0 * (quaternion[:,1] * quaternion[:,2] + quaternion[:,3]*quaternion[0]), 1.0 - 2.0 * (quaternion[:,2] * quaternion[:,2] + quaternion[:,3] * quaternion[:,3]))
+
+    @staticmethod
+    def get_rotation_matrix_from_heading(heading: torch.Tensor) -> torch.Tensor:
+        """Generate a 2D rotation matrix for a given heading angle.
+        
+        Args:
+            heading (torch.Tensor): The heading angle in radians. Tensor shape: [N, 1]
+            
+        Returns:
+            torch.Tensor: The 2D rotation matrix. Tensor shape: [N, 2, 2]"""
+
+        return torch.tensor([
+            [torch.cos(heading), -torch.sin(heading)],
+            [torch.sin(heading), torch.cos(heading)]
+        ])
+    
+    @staticmethod
+    def get_quat_from_heading(heading: torch.Tensor) -> torch.Tensor:
+        """Convert a heading to a quaternion.
+        
+        Args:
+            heading (torch.Tensor): The heading in radians. Tensor shape: [N, 1]
+        
+        Returns:
+            torch.Tensor: The quaternion in the form (w, x, y, z). Tensor shape: [N, 4]"""
+
+        return torch.cat((torch.cos(heading / 2), torch.zeros_like(heading), torch.zeros_like(heading), torch.sin(heading / 2)), dim=1)
+
+    @staticmethod
+    def get_transfrom_matrix(position: torch.Tensor, rotation_matrix: torch.Tensor) -> torch.Tensor:
+        """Generate the 2D tranformation matrix associated with the world to body frame transformation.
+
+        Args:
+            position (torch.Tensor): The position tensor. Tensor shape: [N, 3]
+            rotation_matrix (torch.Tensor): The rotation matrix tensor. Tensor shape: [N, 2, 2]
+        
+        Returns:
+            torch.Tensor: The transformation matrix. Tensor shape: [N, 3, 3]"""
+
+        transfrom_matrix = torch.ones((position.shape[0], 3, 3))
+        transfrom_matrix[:, :2, :2] = rotation_matrix[:]
+        transfrom_matrix[:, :2, 2] = position[:, :2]
+        return transfrom_matrix
+
+    def get_linear_velocities_body(self):
+        """Compute linear velocities in the body frame."""
+
+        self._linear_velocities_body[0] = self.rotation_matrix[0] @ self.linear_velocities_world[0]
+
+    def get_pose_in_local_frame(self, pose: torch.Tensor) -> torch.Tensor:
+        """Transform a pose from the world frame to the local frame. While the tensor are provided
+        in a 6DoF format, the function solves for the 3DoF pose in the local frame, assuming
+        x, y translation and yaw (z) rotation.
+
+        Args:
+            pose (torch.Tensor): The pose in the world frame. Tensor shape: [N, 7]
+        
+        Returns:
+            torch.Tensor: The pose in the local frame. Tensor shape: [N, 7]"""
+        
+        if len(pose.shape) != 2:
+            pose = pose.unsqueeze(0)
+        
+        # Get the position and quaternion
+        position = pose[:, :3]
+        quaternion = pose[:, 3:]
+        # Get the heading, rotation matrix and transformation matrix
+        heading = self.get_heading_from_quat(quaternion)
+        rotation_matrix = self.get_rotation_matrix_from_heading(heading)
+        transformation_matrix = self.get_transfrom_matrix(position, rotation_matrix)
+        # Use the transformation matrix to get the pose in the local frame
+        position_transformed = torch.bmm(transformation_matrix, position)
+        heading_transformed = heading - self.heading
+        quaternion_transformed = self.get_quat_from_heading(heading_transformed)
+        return torch.cat((position_transformed, quaternion_transformed), dim=1)
+ 
+    def get_pose_in_local_frame_ROS(self, pose: PoseStamped) -> torch.Tensor:
+        """Transform a pose from the world frame to the local frame.
+        
+        Args:
+            pose (PoseStamped): The pose in the world frame.
+        
+        Returns:
+            torch.Tensor: The pose in the local frame. Tensor shape: [1, 7]"""
+        
+        # Get the position and quaternion
+        position = torch.tensor([pose.pose.position.x, pose.pose.position.y, pose.pose.position.z], device=self._device).unsqueeze(0)
+        quaternion = torch.tensor([pose.pose.orientation.w, pose.pose.orientation.x, pose.pose.orientation.y, pose.pose.orientation.z], device=self._device).unsqueeze(0)
+        # Get the heading, rotation matrix and transformation matrix
+        heading = self.get_heading_from_quat(quaternion)
+        rotation_matrix = self.get_rotation_matrix_from_heading(heading)
+        transformation_matrix = self.get_transfrom_matrix(position, rotation_matrix)        
+        # Use the transformation matrix to get the pose in the local frame
+        position_transformed = torch.bmm(transformation_matrix, position)
+        heading_transformed = heading - self.heading
+        quaternion_transformed = self.get_quat_from_heading(heading_transformed)
+        return torch.cat((position_transformed, quaternion_transformed), dim=1)
+    
+    def update_state(self, *args, **kwargs) -> None:
+        raise NotImplementedError("Update state method not implemented")
+
+    def update_state_ROS(self, *args, **kwargs) -> None:
+        raise NotImplementedError("Update state ROS method not implemented")
+    
+    def reset(self) -> None:
+        """Reset the state processor to its initial state."""
+        self.is_primed = False
+        self._step = 0
+
+        # Reset state variables
+        self._position = None
+        self._quaternion = None
+        self._heading = None
+        self._rotation_matrix = None
+        self._linear_velocities_world = None
+        self._angular_velocities_world = None
+        self._linear_velocities_body = None
+        self._angular_velocities_body = None
+
+        # Reset lazy updates
+        self._step_heading = 0
+        self._step_rotation_matrix = 0
+        self._step_linear_velocity_body = 0
+        self._step_angular_velocity_body = 0
+        self._step_logs = 0
