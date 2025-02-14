@@ -14,17 +14,17 @@ def generate_launch_description():
                 parameters=[
                     {
                         "task_name": "GoToPosition",
-                        "state_preprocessor_name": "Optitrack",
+                        "state_preprocessor_name": "Debug",
                         "robot_interface_name": "FloatingPlatform",
-                        "inference_runner_name": "SKRL",
+                        "inference_runner_name": "Random",
                         "enable_logging": False,
                         "device": "cuda:0",
                         "max_steps": 250,
                         "dt": 1 / 5.0,
-                        "nn_log_dir": None,
-                        "nn_checkpoint_path": None,
+                        "nn_log_dir": "None",
+                        "nn_checkpoint_path": "None",
                         "terminate_on_completion": False,
-                        "logs_save_path": None,
+                        "logs_save_path": "None",
                     }
                 ],
             )
