@@ -6,11 +6,11 @@ from rclpy.node import Node
 import rclpy.time
 from std_msgs.msg import Bool
 
-from fp_inference.state_preprocessors import StatePreprocessorFactory
-from fp_inference.observation_formaters import ObservationFormaterFactory
-from fp_inference.robot_interfaces import RobotInterfaceFactory
-from fp_inference.inference_runners import InferenceRunnerFactory
-from fp_inference.utils import Logger
+from .state_preprocessors import StatePreprocessorFactory
+from .observation_formaters import ObservationFormaterFactory
+from .robot_interfaces import RobotInterfaceFactory
+from .inference_runners import InferenceRunnerFactory
+from .utils import Logger
 
 from rcl_interfaces.msg import ParameterDescriptor
 
@@ -65,17 +65,23 @@ class RLTaskNode(Node):
         self.declare_parameter("dt", 1 / 15.0, dt_desc)
         self._dt = self.get_parameter("dt").get_parameter_value().double_value
         nn_log_dir_desc = ParameterDescriptor(description="The directory where the neural network model is stored.")
-        self.declare_parameter("nn_log_dir", None, nn_log_dir_desc)
+        self.declare_parameter("nn_log_dir", "None", nn_log_dir_desc)
+        if self._nn_log_dir == "None":
+            self._nn_log_dir = None
         self._nn_log_dir = self.get_parameter("nn_log_dir").get_parameter_value().string_value
         nn_checkpoint_path_desc = ParameterDescriptor(description="The path to the neural network model checkpoint.")
-        self.declare_parameter("nn_checkpoint_path", None, nn_checkpoint_path_desc)
+        self.declare_parameter("nn_checkpoint_path", "None", nn_checkpoint_path_desc)
+        if self._nn_log_dir == "None":
+            self._nn_log_dir = None
         self._nn_checkpoint_path = self.get_parameter("nn_checkpoint_path").get_parameter_value().string_value
         terminate_on_completion_desc = ParameterDescriptor(description="Terminate the node when the goal is reached.")
         self.declare_parameter("terminate_on_completion", False, terminate_on_completion_desc)
         self._terminate_on_completion = self.get_parameter("terminate_on_completion").get_parameter_value().bool_value
         logs_save_path_desc = ParameterDescriptor(description="The path where the logs will be saved.")
-        self.declare_parameter("logs_save_path", None, logs_save_path_desc)
+        self.declare_parameter("logs_save_path", "None", logs_save_path_desc)
         self._logs_save_path = self.get_parameter("logs_save_path").get_parameter_value().string_value
+        if self._logs_save_path == "None":
+            self._logs_save_path
 
         # Build the task
         self.build()
