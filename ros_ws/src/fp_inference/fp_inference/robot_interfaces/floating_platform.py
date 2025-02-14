@@ -10,13 +10,16 @@ import copy
 class FloatingPlatformInterface(Registerable, BaseRobotInterface):
     def __init__(self, *args, device: str | None = None, **kwargs):
         super().__init__(*args, device=device, **kwargs)
+
+        # Type of ROS message
+        self.ROS_ACTION_TYPE = ByteMultiArray
+        self.ROS_ACTION_QUEUE_SIZE = 1
+
+        # Last actions is set to 0
         self._last_actions = torch.zeros((1, 8), device=self._device)
         self.commands = ByteMultiArray()
         actions = [0] * 9  # Everything off
         self.commands.data = [value.to_bytes(1, byteorder="little") for value in actions]
-
-        self.ROS_ACTION_TYPE = ByteMultiArray
-        self.ROS_ACTION_QUEUE_SIZE = 1
 
         # Action space
         self._action_space = spaces.MultiDiscrete([2] * 8)
@@ -24,7 +27,8 @@ class FloatingPlatformInterface(Registerable, BaseRobotInterface):
     @property
     def kill_action(self) -> ByteMultiArray:
         kill_command = ByteMultiArray()
-        kill_command.data = [0] * 9
+        actions = [0] * 9  # Everything off
+        kill_command.data = [value.to_bytes(1, byteorder="little") for value in actions]
         return kill_command
 
     def cast_actions(self, actions) -> ByteMultiArray:
@@ -35,7 +39,7 @@ class FloatingPlatformInterface(Registerable, BaseRobotInterface):
         # Store the actions
         self._last_actions = copy.copy(actions)
         # Convert the actions to bytes message
-        actions = [1] + actions.int().tolist()
+        actions = [1] + actions[0].int().tolist()
         self.commands.data = [value.to_bytes(1, byteorder="little") for value in actions]
         # Return the commands
         return self.commands

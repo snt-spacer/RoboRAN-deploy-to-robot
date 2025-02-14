@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 
+import threading
 import rclpy
 import rclpy.logging
 from rclpy.node import Node
@@ -110,7 +111,7 @@ class RLTaskNode(Node):
             self.observation_formater.logs_names,
             self.robot_interface.logs_names,
         ]
-        log_hooks = [self.state_preprocessor.logs, self.observation_formater.logs, self.robot_interface.logs]
+        log_hooks = [self.state_preprocessor.get_logs, self.observation_formater.get_logs, self.robot_interface.get_logs]
 
         self.data_logger = Logger(logs_names, log_hooks, self._enable_logging, self._logs_save_path)
 
@@ -155,7 +156,6 @@ class RLTaskNode(Node):
         self.get_logger().info("Running task...")
         # Create a rate object
         rate = self.create_rate(1.0 / self._dt)
-
         # Main task loop
         while rclpy.ok():
             # Get the current observation
@@ -163,11 +163,9 @@ class RLTaskNode(Node):
             # Get the action from the inference runner
             action = self.inference_runner.act(self.observation_formater.observation)
             # Publish the action
-            self.action_pub(self.robot_interface.cast_actions(action))
+            self.action_pub.publish(self.robot_interface.cast_actions(action))
             # Log the data
             self.data_logger.update()
-            # Spin the node
-            rclpy.spin_once(self)
             # Check if the task is completed
             if (self.observation_formater.task_completed) or (not self.observation_formater.task_is_live):
                 break
@@ -180,7 +178,6 @@ class RLTaskNode(Node):
         while rclpy.ok():
             # Wait for a goal to be received
             self.get_logger().info("Waiting for goal...")
-            rclpy.spin_once(self)
             if self.observation_formater.task_is_live:
                 self.get_logger().info("Goal received!")
                 self.prime_state_preprocessor()
@@ -189,9 +186,9 @@ class RLTaskNode(Node):
                 # Reset the robot interface
                 self.robot_interface.reset()
                 # Send immobilization command
-                self.action_pub(self.robot_interface.kill_action)
+                self.action_pub.publish(self.robot_interface.kill_action)
                 # Task is completed, save the logs.
-                self.data_logger.save()
+                self.data_logger.save(self._robot_interface_name, self._inference_runner_name, self._task_name)
                 # Returns if the task is completed
                 if self._terminate_on_completion:
                     self.get_logger().info("In run once mode. Terminating node.")
@@ -205,12 +202,9 @@ class RLTaskNode(Node):
         """Wait for the state preprocesseor to be ready."""
         self.get_logger().info("Warming up the state preprocessor...")
         obs_rate = self.create_rate(1.0 / self._dt)
-        print(obs_rate.frequency)
         while rclpy.ok():
-            print("Waiting")
             if self.state_preprocessor.is_primed:
                 break
-            rclpy.spin_once(self)
             obs_rate.sleep()
         self.get_logger().info("State preprocessor is ready!")
 
@@ -232,8 +226,13 @@ def main(args=None):
     rclpy.init(args=args)
 
     task_node = RLTaskNode()
+
+    thread = threading.Thread(target=rclpy.spin, args=(task_node, ), daemon=True)
+    thread.start()
+
     task_node.run()
     task_node.clean_termination()
+    thread.join()
 
 
 if __name__ == "__main__":

@@ -49,7 +49,7 @@ class BaseRobotInterface:
 
     @property
     def last_actions(self) -> torch.Tensor:
-        self._last_actions
+        return self._last_actions
 
     @property
     def action_space(self) -> spaces.Space:
@@ -58,6 +58,9 @@ class BaseRobotInterface:
     @property
     def kill_action(self) -> Any:
         raise NotImplementedError("Kill action not implemented")
+ 
+    def get_logs(self):
+        return self.logs
 
     def cast_actions(self, actions: torch.Tensor) -> Any:
         self._step += 1

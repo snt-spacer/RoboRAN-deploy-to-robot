@@ -36,7 +36,7 @@ class GoToPositionFormater(Registerable, BaseFormater):
     def build_logs(self):
         super().build_logs()
         self._logs["distance_error"] = torch.zeros((1, 1), device=self._device)
-        self._logs["heading_error"] = torch.tensor((1, 1), device=self._device)
+        self._logs["position_heading_error"] = torch.tensor((1, 1), device=self._device)
         self._logs["target_position"] = torch.tensor((1, 2), device=self._device)
 
     def update_logs(self):
@@ -64,6 +64,8 @@ class GoToPositionFormater(Registerable, BaseFormater):
             self._target_position[:, 1] - self._state_preprocessor.position[:, 1],
             self._target_position[:, 0] - self._state_preprocessor.position[:, 0],
         )
+        #print(target_heading_w.shape)
+        #print(self._state_preprocessor.heading.shape)
         self.target_heading_error = torch.atan2(
             torch.sin(target_heading_w - self._state_preprocessor.heading),
             torch.cos(target_heading_w - self._state_preprocessor.heading),

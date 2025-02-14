@@ -72,13 +72,16 @@ class BaseFormater:
     @property
     def observation(self):
         return self._observation
-
-    def check_task_completion(self):
-        raise NotImplementedError("Check task completion method not implemented")
-
+ 
     @property
     def task_completed(self):
         return self._task_completed
+    
+    def get_logs(self):
+        return self.logs
+
+    def check_task_completion(self):
+        raise NotImplementedError("Check task completion method not implemented")
 
     def format_observation(self, actions: torch.Tensor | None = None) -> None:
         if actions is None:

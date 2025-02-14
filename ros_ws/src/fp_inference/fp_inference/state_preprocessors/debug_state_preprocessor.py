@@ -38,11 +38,8 @@ class DebugStatePreProcessor(Registerable, BaseStatePreProcessor):
         self._angular_velocities_world = torch.zeros((1, 3), device=self._device)
         self._step += 1
 
-        print("Updated state")
-
         if self._step > 10:
             self._is_primed = True
-        print("Returning updated state")
 
     def reset(self):
         super().reset()

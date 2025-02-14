@@ -43,7 +43,7 @@ class Logger:
                 # Add the log name to the logs
                 self._logs[log_name] = []
 
-    def collect_logs(self, logs: dict) -> None:
+    def collect_logs(self) -> None:
         """Collect logs from the hooks. The logs contain torch.Tensors.
 
         Args:
@@ -65,4 +65,4 @@ class Logger:
             os.makedirs(self.save_path, exist_ok=True)
             os.makedirs(os.path.join(self.save_path, "logs"), exist_ok=True)
 
-            raise NotImplementedError("Save method not implemented.")
+            #raise NotImplementedError("Save method not implemented.")

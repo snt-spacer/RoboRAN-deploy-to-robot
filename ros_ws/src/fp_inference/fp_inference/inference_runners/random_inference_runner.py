@@ -54,7 +54,7 @@ class RandomInferenceRunner(Registerable, BaseInferenceRunner):
             The actions to take."""
 
         
-        return torch.tensor(self._action_space.sample()).unsqueeze(0)
+        return torch.tensor(self._action_space.sample(), device=self._device).unsqueeze(0)
 
     def build(self) -> None:
         """Build the runner. Generate the models, preprocessor, and the actor.
