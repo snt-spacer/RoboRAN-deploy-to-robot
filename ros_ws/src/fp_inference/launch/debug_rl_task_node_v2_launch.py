@@ -14,7 +14,7 @@ def generate_launch_description():
                 parameters=[
                     {
                         "task_name": "GoToPosition",
-                        "state_preprocessor_name": "Debug",
+                        "state_preprocessor_name": "Optitrack",
                         "robot_interface_name": "FloatingPlatform",
                         "inference_runner_name": "Random",
                         "enable_logging": True,
@@ -27,6 +27,9 @@ def generate_launch_description():
                         "logs_save_path": "./ros_data_logs",
                     }
                 ],
+                remappings=[
+                    ("state_preprocessor_input", "/vrpn_client_node/FP_exp_RL/PoseStamped")
+                ]
             )
         ]
     )
