@@ -33,3 +33,5 @@ class StatePreprocessorFactory:
 
 
 from optitrack_state_preprocessor import OptitrackStatePreProcessor
+from odometry_state_preprocessor import OdometryStatePreProcessor
+from debug_state_preprocessor import DebugStatePreProcessor
