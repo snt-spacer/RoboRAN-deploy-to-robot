@@ -29,7 +29,7 @@ class OptitrackStatePreProcessor(Registerable, BaseStatePreProcessor):
         # State buffers for position, quaternion, and time
         self._position_buffer: torch.Tensor = torch.zeros((buffer_size, 3), device=device)
         self._quaternion_buffer: torch.Tensor = torch.zeros((buffer_size, 4), device=device)
-        self._time_buffer: torch.Tensor = torch.zeros((buffer_size), device=device)
+        self._time_buffer: torch.Tensor = torch.zeros((buffer_size), device=device, dtype=torch.float64)
 
     def update_angular_velocities(self):
         """Compute angular velocities from quaternions."""
@@ -58,7 +58,7 @@ class OptitrackStatePreProcessor(Registerable, BaseStatePreProcessor):
 
     def update_linear_velocities(self):
         # Take time buffer extremas and convert to seconds
-        dt = (self._time_buffer[-1] - self._time_buffer[0]) * 1e-9 / self._buffer_size
+        dt = (self._time_buffer[-1] - self._time_buffer[0]) / self._buffer_size
         # Compute position differences and divide by time to get velocities
         vel = torch.diff(self._position_buffer, dim=0) / (dt)
         # Update linear velocities in the world frame
@@ -107,15 +107,17 @@ class OptitrackStatePreProcessor(Registerable, BaseStatePreProcessor):
             [pose.pose.orientation.w, pose.pose.orientation.x, pose.pose.orientation.y, pose.pose.orientation.z],
             device=self._device,
         )
-        time = torch.tensor(pose.header.stamp.nanosec, device=self._device)
-        # Update buffers
-        self.append_right_tensor_queue(self._position_buffer, position)
-        self.append_right_tensor_queue(self._quaternion_buffer, quaternion)
-        self.append_right_tensor_queue(self._time_buffer, time)
-        # Update the step count and priming status
+        #time = torch.tensor(pose.header.stamp.nanosec, device=self._device)
+        self._last_time = copy.copy(self._time)
         self._time = pose.header.stamp.sec + pose.header.stamp.nanosec * 1e-9
+        # Update buffers
+        self._position_buffer = self.append_right_tensor_queue(self._position_buffer, position)
+        self._quaternion_buffer = self.append_right_tensor_queue(self._quaternion_buffer, quaternion)
+        self._time_buffer = self.append_right_tensor_queue(self._time_buffer, torch.tensor(copy.copy(self._time), device=self._device, dtype=torch.float64))
+        # Update the step count and priming status
         self._step += 1
         self._is_primed = self._step >= self._buffer_size
+
         # If the state processor is primed, update the state
         if self._is_primed:
             # Update the position and quaternion
