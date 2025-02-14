@@ -131,6 +131,13 @@ class RLTaskNode(Node):
             "robot_interface_commands",
             self.robot_interface.ROS_ACTION_QUEUE_SIZE,
         )
+        self.task_done_pub = self.create_publisher(
+            Bool,
+            "goal_done_interface",
+            1,
+        )
+        self._done_msg = Bool()
+        self._done_msg.data = True
 
         self.get_logger().info("Task built!")
 
@@ -171,7 +178,6 @@ class RLTaskNode(Node):
         wait_rate = self.create_rate(1.0)
         while rclpy.ok():
             # Wait for a goal to be received
-            self.get_logger().info("Waiting for goal...")
             if self.observation_formater.task_is_live:
                 self.get_logger().info("Goal received!")
                 self.prime_state_preprocessor()
@@ -183,6 +189,8 @@ class RLTaskNode(Node):
                 self.action_pub.publish(self.robot_interface.kill_action)
                 # Task is completed, save the logs.
                 self.data_logger.save(self._robot_interface_name, self._inference_runner_name, self._task_name)
+                # Send confirmation of task completion
+                self.task_done_pub.publish(self._done_msg)
                 # Returns if the task is completed
                 if self._terminate_on_completion:
                     self.get_logger().info("In run once mode. Terminating node.")
@@ -190,6 +198,7 @@ class RLTaskNode(Node):
                 else:
                     self.get_logger().info("Resetting task.")
                     self.observation_formater.reset()
+            self.get_logger().info("Waiting for goal...")
             wait_rate.sleep()
 
     def prime_state_preprocessor(self):
