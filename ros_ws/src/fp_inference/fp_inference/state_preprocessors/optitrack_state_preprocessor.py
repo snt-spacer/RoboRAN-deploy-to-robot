@@ -35,7 +35,7 @@ class OptitrackStatePreProcessor(Registerable, BaseStatePreProcessor):
         """Compute angular velocities from quaternions."""
 
         # Take time buffer extremas and convert to seconds
-        dt = (self._time_buffer[-1] - self._time_buffer[0]) * 1e-9 / self._buffer_size
+        dt = (self._time_buffer[-1] - self._time_buffer[0]) / self._buffer_size
         # Compute quaternion differences and divide by time to get angular velocities
         vel = (2 / dt) * torch.stack(
             [
