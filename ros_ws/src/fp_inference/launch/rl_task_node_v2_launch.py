@@ -21,10 +21,10 @@ def generate_launch_description():
                         "device": "cuda:0",
                         "max_steps": 250,
                         "dt": 1 / 5.0,
-                        "nn_log_dir": None,
-                        "nn_checkpoint_path": None,
+                        "nn_log_dir": "None",
+                        "nn_checkpoint_path": "None",
                         "terminate_on_completion": False,
-                        "logs_save_path": None,
+                        "logs_save_path": "./ros_data_logs",
                     }
                 ],
             )
