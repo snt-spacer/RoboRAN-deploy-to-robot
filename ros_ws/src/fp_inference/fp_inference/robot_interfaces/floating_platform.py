@@ -1,4 +1,5 @@
 from .base_robot_interface import BaseRobotInterface
+from . import Registerable
 
 from gymnasium import spaces
 from std_msgs.msg import ByteMultiArray
@@ -6,14 +7,16 @@ import torch
 import copy
 
 
-class FloatingPlatformInterface(BaseRobotInterface):
+class FloatingPlatformInterface(Registerable, BaseRobotInterface):
     def __init__(self, *args, device: str | None = None, **kwargs):
         super().__init__(*args, device=device, **kwargs)
-        self.last_actions = torch.zeros((1, 8), device=self._device)
+        self._last_actions = torch.zeros((1, 8), device=self._device)
         self.commands = ByteMultiArray()
-        self.commands.data = [0] * 9  # Everything off
+        actions = [0] * 9  # Everything off
+        self.commands.data = [value.to_bytes(1, byteorder="little") for value in actions]
 
         self.ROS_ACTION_TYPE = ByteMultiArray
+        self.ROS_ACTION_QUEUE_SIZE = 1
 
         # Action space
         self._action_space = spaces.MultiDiscrete([2] * 8)
@@ -30,14 +33,16 @@ class FloatingPlatformInterface(BaseRobotInterface):
         # Ensure actions are between 0 and 1
         actions = torch.clamp(actions, 0, 1)
         # Store the actions
-        self.last_actions = copy.copy(actions)
+        self._last_actions = copy.copy(actions)
         # Convert the actions to bytes message
-        self.commands.data = [1] + actions.int().tolist()
+        actions = [1] + actions.int().tolist()
+        self.commands.data = [value.to_bytes(1, byteorder="little") for value in actions]
         # Return the commands
         return self.commands
 
     def reset(self):
         super().reset()
-        self.last_actions = torch.zeros((1, 8), device=self._device)
-        self.commands.data = [0] * 9  # Everything off
+        self._last_actions = torch.zeros((1, 8), device=self._device)
+        actions = [0] * 9  # Everything off
+        self.commands.data = [value.to_bytes(1, byteorder="little") for value in actions]
         self.build_logs()

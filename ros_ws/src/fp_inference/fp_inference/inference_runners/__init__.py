@@ -23,11 +23,11 @@ class InferenceRunnerFactory:
             raise ValueError(f"Module {cls_name} not registered.")
 
         print("=============================================")
-        print("Creating Inference Runner {} with args:".format(cls_name))
+        print("Creating inference runner {} with args:".format(cls_name))
         print("Args:")
         [print(arg) for arg in args]
         print("Kwargs:")
-        [print(f"{key}: {value}") for key, value in kwargs.items()]
+        [print(f" +{key}: {value}") for key, value in kwargs.items()]
         print("=============================================")
 
         return cls.registry[cls_name](*args, **kwargs)

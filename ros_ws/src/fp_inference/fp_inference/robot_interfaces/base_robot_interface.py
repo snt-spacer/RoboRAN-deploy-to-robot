@@ -52,7 +52,7 @@ class BaseRobotInterface:
         self._last_actions
 
     @property
-    def action_space(self) -> spaces:
+    def action_space(self) -> spaces.Space:
         return self._action_space
 
     @property

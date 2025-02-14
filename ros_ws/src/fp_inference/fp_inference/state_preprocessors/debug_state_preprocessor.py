@@ -1,8 +1,8 @@
-from std_msgs.msg import Empty
 from . import Registerable
 from . import BaseStatePreProcessor
 import torch
 import copy
+from geometry_msgs.msg import PoseStamped
 
 
 class DebugStatePreProcessor(Registerable, BaseStatePreProcessor):
@@ -21,13 +21,13 @@ class DebugStatePreProcessor(Registerable, BaseStatePreProcessor):
             device (str, optional): The device to perform computations on. Defaults to "auto".
         """
 
-        self.ROS_TYPE = Empty
+        super().__init__(buffer_size=buffer_size, device=device, **kwargs)
+        self.ROS_TYPE = PoseStamped
         self.ROS_CALLBACK = self.update_state_ROS
         self.ROS_QUEUE_SIZE = 1
 
-        super().__init__(buffer_size=buffer_size, device=device, **kwargs)
 
-    def update_state_ROS(self, *args, **kwargs) -> None:
+    def update_state_ROS(self, data: PoseStamped, **kwargs) -> None:
         """Update the state processor with a new ROS message. If the state processor is primed, update the state.
         When primed, the state can be accessed through the state variables."""
 
@@ -38,3 +38,12 @@ class DebugStatePreProcessor(Registerable, BaseStatePreProcessor):
         self._angular_velocities_world = torch.zeros((1, 3), device=self._device)
         self._step += 1
 
+        print("Updated state")
+
+        if self._step > 10:
+            self._is_primed = True
+        print("Returning updated state")
+
+    def reset(self):
+        super().reset()
+        self._is_primed = False

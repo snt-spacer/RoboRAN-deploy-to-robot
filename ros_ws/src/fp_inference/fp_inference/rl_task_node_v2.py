@@ -66,14 +66,14 @@ class RLTaskNode(Node):
         self._dt = self.get_parameter("dt").get_parameter_value().double_value
         nn_log_dir_desc = ParameterDescriptor(description="The directory where the neural network model is stored.")
         self.declare_parameter("nn_log_dir", "None", nn_log_dir_desc)
+        self._nn_log_dir = self.get_parameter("nn_log_dir").get_parameter_value().string_value
         if self._nn_log_dir == "None":
             self._nn_log_dir = None
-        self._nn_log_dir = self.get_parameter("nn_log_dir").get_parameter_value().string_value
         nn_checkpoint_path_desc = ParameterDescriptor(description="The path to the neural network model checkpoint.")
         self.declare_parameter("nn_checkpoint_path", "None", nn_checkpoint_path_desc)
-        if self._nn_log_dir == "None":
-            self._nn_log_dir = None
         self._nn_checkpoint_path = self.get_parameter("nn_checkpoint_path").get_parameter_value().string_value
+        if self._nn_checkpoint_path == "None":
+            self._nn_checkpoint_path = None
         terminate_on_completion_desc = ParameterDescriptor(description="Terminate the node when the goal is reached.")
         self.declare_parameter("terminate_on_completion", False, terminate_on_completion_desc)
         self._terminate_on_completion = self.get_parameter("terminate_on_completion").get_parameter_value().bool_value
@@ -89,20 +89,22 @@ class RLTaskNode(Node):
     def build(self):
         """Build the task by creating the state preprocessor, observation formater, inference runner, and robot interface."""
 
-        self.get_parameter("my_parameter").get_parameter_value()
+        self.get_logger().info("Building task...")
 
         self.state_preprocessor = StatePreprocessorFactory.create(self._state_preprocessor_name, device=self._device)
         self.observation_formater = ObservationFormaterFactory.create(
             self._task_name, self.state_preprocessor, device=self._device
         )
+        self.robot_interface = RobotInterfaceFactory.create(self._robot_interface_name, device=self._device)
         self.inference_runner = InferenceRunnerFactory.create(
             self._inference_runner_name,
             logdir=self._nn_log_dir,
             checkpoint_path=self._nn_checkpoint_path,
+            action_space=self.robot_interface.action_space,
             device=self._device,
         )
-        self.robot_interface = RobotInterfaceFactory.create(self._robot_interface_name, device=self._device)
 
+        self.get_logger().info("Initializing logger...")
         logs_names = [
             self.state_preprocessor.logs_names,
             self.observation_formater.logs_names,
@@ -110,8 +112,9 @@ class RLTaskNode(Node):
         ]
         log_hooks = [self.state_preprocessor.logs, self.observation_formater.logs, self.robot_interface.logs]
 
-        self.data_logger = Logger(logs_names, log_hooks, self._enable_logging)
+        self.data_logger = Logger(logs_names, log_hooks, self._enable_logging, self._logs_save_path)
 
+        self.get_logger().info("Opening ROS2 interfaces...")
         # ROS2 Subscriptions
         self.create_subscription(
             self.state_preprocessor.ROS_TYPE,
@@ -134,8 +137,7 @@ class RLTaskNode(Node):
             self.robot_interface.ROS_ACTION_QUEUE_SIZE,
         )
 
-        # Timer for main task loop
-        self.timer = self.create_timer(self._dt, self.run)
+        self.get_logger().info("Task built!")
 
     def reset_task(self, msg: Bool):
         """Reset the task by resetting the state preprocessor, observation formater, inference runner, and robot interface."""
@@ -178,6 +180,7 @@ class RLTaskNode(Node):
         while rclpy.ok():
             # Wait for a goal to be received
             self.get_logger().info("Waiting for goal...")
+            rclpy.spin_once(self)
             if self.observation_formater.task_is_live:
                 self.get_logger().info("Goal received!")
                 self.prime_state_preprocessor()
@@ -202,7 +205,9 @@ class RLTaskNode(Node):
         """Wait for the state preprocesseor to be ready."""
         self.get_logger().info("Warming up the state preprocessor...")
         obs_rate = self.create_rate(1.0 / self._dt)
+        print(obs_rate.frequency)
         while rclpy.ok():
+            print("Waiting")
             if self.state_preprocessor.is_primed:
                 break
             rclpy.spin_once(self)

@@ -2,6 +2,8 @@ import skrl
 from packaging import version
 import yaml
 from gymnasium import spaces
+from fp_inference.inference_runners import Registerable
+
 
 # check for minimum supported skrl version
 SKRL_VERSION = "1.4.1"
@@ -23,12 +25,12 @@ from skrl.utils import set_seed
 from . import generate_models, get_state_preprocessor
 
 
-class SKRLInferenceRunner:
+class SKRLInferenceRunner(Registerable):
 
     def __init__(
         self,
         logdir: str | None = None,
-        action_space: spaces | None = None,
+        action_space: spaces.Space | None = None,
         checkpoint_path: str | None = None,
         device: str = "auto",
         use_mix_precision: bool = False,
@@ -64,7 +66,7 @@ class SKRLInferenceRunner:
     def load_model(
         self,
         log_dir: str | None = None,
-        action_space: spaces | None = None,
+        action_space: spaces.Space | None = None,
         checkpoint_path: str | None = None,
         **kwargs,
     ) -> None:
@@ -98,7 +100,7 @@ class SKRLInferenceRunner:
         )
 
         # Build the model
-        self.build(self._checkpoint_path)
+        self.build()
 
     def load_weigths(self, path: str) -> None:
         """Load the model from the specified path
@@ -253,7 +255,7 @@ class SKRLInferenceRunner:
 
         return actions
 
-    def build(self, resume_path: str) -> None:
+    def build(self) -> None:
         """Build the runner. Generate the models, preprocessor, and the actor.
 
         Args:
@@ -274,4 +276,4 @@ class SKRLInferenceRunner:
         # Add the modules to the list of checpointed modules
         self.checkpoint_modules = {"policy": self._policy, "state_preprocessor": self._state_preprocessor}
         # Fetch the weights from the checkpoint
-        self.load_weigths(resume_path)
+        self.load_weigths(self._checkpoint_path)

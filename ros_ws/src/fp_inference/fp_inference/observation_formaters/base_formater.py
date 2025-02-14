@@ -45,6 +45,8 @@ class BaseFormater:
         # Log hook
         self._logs = {}
 
+        self.build_logs()
+
     def build_logs(self):
         self._logs = {}
 

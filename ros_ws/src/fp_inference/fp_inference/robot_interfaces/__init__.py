@@ -3,7 +3,7 @@ from .base_robot_interface import BaseRobotInterface
 
 class Registerable:
     def __init_subclass__(cls: BaseRobotInterface):
-        cls_name = cls.__name__[:-15]  # Remove "InferenceRunner" from the class name
+        cls_name = cls.__name__[:-9]  # Remove "Interface" from the class name
         RobotInterfaceFactory.register(cls_name, cls)
 
 
@@ -23,11 +23,11 @@ class RobotInterfaceFactory:
             raise ValueError(f"Module {cls_name} not registered.")
 
         print("=============================================")
-        print("Creating Inference Runner {} with args:".format(cls_name))
+        print("Creating robot interface {} with args:".format(cls_name))
         print("Args:")
         [print(arg) for arg in args]
         print("Kwargs:")
-        [print(f"{key}: {value}") for key, value in kwargs.items()]
+        [print(f" +{key}: {value}") for key, value in kwargs.items()]
         print("=============================================")
 
         return cls.registry[cls_name](*args, **kwargs)

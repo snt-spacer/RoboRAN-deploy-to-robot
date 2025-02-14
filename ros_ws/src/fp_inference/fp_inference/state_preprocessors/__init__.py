@@ -3,7 +3,8 @@ from .base_state_preprocessor import BaseStatePreProcessor
 
 class Registerable:
     def __init_subclass__(cls: BaseStatePreProcessor):
-        StatePreprocessorFactory.register(cls.__name__, cls)
+        name = cls.__name__[:-17]  # Remove "StatePreProcessor" from the class name
+        StatePreprocessorFactory.register(name, cls)
 
 
 class StatePreprocessorFactory:
@@ -26,12 +27,12 @@ class StatePreprocessorFactory:
         print("Args:")
         [print(arg) for arg in args]
         print("Kwargs:")
-        [print(f"{key}: {value}") for key, value in kwargs.items()]
+        [print(f" +{key}: {value}") for key, value in kwargs.items()]
         print("=============================================")
 
         return cls.registry[cls_name](*args, **kwargs)
 
 
-from optitrack_state_preprocessor import OptitrackStatePreProcessor
-from odometry_state_preprocessor import OdometryStatePreProcessor
-from debug_state_preprocessor import DebugStatePreProcessor
+from .optitrack_state_preprocessor import OptitrackStatePreProcessor
+from .odometry_state_preprocessor import OdometryStatePreProcessor
+from .debug_state_preprocessor import DebugStatePreProcessor

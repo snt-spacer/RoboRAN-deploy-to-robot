@@ -1,10 +1,13 @@
+from .import Registerable,BaseInferenceRunner
+
+
 from gymnasium import spaces
 import torch
 
-class RandomInferenceRunner:
+class RandomInferenceRunner(Registerable, BaseInferenceRunner):
     def __init__(
         self,
-        action_space: spaces | None = None,
+        action_space: spaces.Space | None = None,
         device: str = "auto",
         **kwargs,
     ) -> None:
@@ -25,7 +28,7 @@ class RandomInferenceRunner:
 
     def load_model(
         self,
-        action_space: spaces | None = None,
+        action_space: spaces.Space | None = None,
         **kwargs,
     ) -> None:
         """Load the RL model from a given path.
@@ -53,7 +56,7 @@ class RandomInferenceRunner:
         
         return torch.tensor(self._action_space.sample()).unsqueeze(0)
 
-    def build(self, resume_path: str) -> None:
+    def build(self) -> None:
         """Build the runner. Generate the models, preprocessor, and the actor.
 
         Args:

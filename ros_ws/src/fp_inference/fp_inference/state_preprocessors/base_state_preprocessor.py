@@ -1,10 +1,9 @@
 from geometry_msgs.msg import PoseStamped
-from . import Registerable
 import torch
 import copy
 
 
-class BaseStatePreProcessor(Registerable):
+class BaseStatePreProcessor:
     """A class to process state information from a robot. The state processor maintains a buffer of the robot's position,
     quaternion, and time. The state processor can compute the heading, rotation matrix, linear velocities in the world frame,
     and linear velocities in the body frame. The state processor is primed after a certain number of steps, after which the

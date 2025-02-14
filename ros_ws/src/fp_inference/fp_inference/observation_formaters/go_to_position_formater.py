@@ -35,9 +35,9 @@ class GoToPositionFormater(Registerable, BaseFormater):
 
     def build_logs(self):
         super().build_logs()
-        self._logs["distance_error"] = torch.zeors((1, 1), device=self._device)
+        self._logs["distance_error"] = torch.zeros((1, 1), device=self._device)
         self._logs["heading_error"] = torch.tensor((1, 1), device=self._device)
-        self._logs["goal_position"] = torch.tensor((1, 2), device=self._device)
+        self._logs["target_position"] = torch.tensor((1, 2), device=self._device)
 
     def update_logs(self):
         self._logs["distance_error"] = self.dist
@@ -86,6 +86,9 @@ class GoToPositionFormater(Registerable, BaseFormater):
             position (PointStamped): The goal position."""
 
         if position is not None:
+            print("Received new goal")
+            print("Going to position: ", position.point.x, position.point.y)
+
             self._step += 1
             self._target_position[0, 0] = position.point.x
             self._target_position[0, 1] = position.point.y

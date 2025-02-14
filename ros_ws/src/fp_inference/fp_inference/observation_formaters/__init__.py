@@ -27,7 +27,7 @@ class ObservationFormaterFactory:
         print("Args:")
         [print(arg) for arg in args]
         print("Kwargs:")
-        [print(f"{key}: {value}") for key, value in kwargs.items()]
+        [print(f" +{key}: {value}") for key, value in kwargs.items()]
         print("=============================================")
 
         return cls.registry[cls_name](*args, **kwargs)

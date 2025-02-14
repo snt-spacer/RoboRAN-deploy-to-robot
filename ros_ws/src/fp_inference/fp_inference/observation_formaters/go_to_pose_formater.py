@@ -40,6 +40,8 @@ class GoToPoseFormater(Registerable, BaseFormater):
         self._logs["distance_error"] = torch.zeros((1, 1), device=self._device)
         self._logs["target_heading_error"] = torch.zeros((1, 1), device=self._device)
         self._logs["heading_error"] = torch.zeros((1, 1), device=self._device)
+        self._logs["target_position"] = torch.zeros((1, 2), device=self._device)
+        self._logs["target_heading"] = torch.zeros((1, 1), device=self._device)
 
     def update_logs(self):
         self._logs["distance_error"] = self.dist
