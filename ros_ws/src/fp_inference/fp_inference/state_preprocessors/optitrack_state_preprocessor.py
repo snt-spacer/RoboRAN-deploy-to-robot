@@ -5,6 +5,7 @@ import copy
 from .base_state_preprocessor import BaseStatePreProcessor
 from . import Registerable
 
+
 class OptitrackStatePreProcessor(Registerable, BaseStatePreProcessor):
     """A class to process state information from a robot. The state processor maintains a buffer of the robot's position,
     quaternion, and time. The state processor can compute the heading, rotation matrix, linear velocities in the world frame,
@@ -29,21 +30,32 @@ class OptitrackStatePreProcessor(Registerable, BaseStatePreProcessor):
         self._position_buffer: torch.Tensor = torch.zeros((buffer_size, 3), device=device)
         self._quaternion_buffer: torch.Tensor = torch.zeros((buffer_size, 4), device=device)
         self._time_buffer: torch.Tensor = torch.zeros((buffer_size), device=device)
-    
+
     def update_angular_velocities(self):
         """Compute angular velocities from quaternions."""
 
         # Take time buffer extremas and convert to seconds
         dt = (self._time_buffer[-1] - self._time_buffer[0]) * 1e-9 / self._buffer_size
         # Compute quaternion differences and divide by time to get angular velocities
-        vel = (2 / dt) * torch.stack([
-            self._quaternion_buffer[:-1, 0] * self._quaternion_buffer[1:, 1] - self._quaternion_buffer[:-1, 1] * self._quaternion_buffer[1:, 0] - self._quaternion_buffer[:-1, 2] * self._quaternion_buffer[1:, 3] + self._quaternion_buffer[:-1, 3] * self._quaternion_buffer[1:, 2],
-            self._quaternion_buffer[:-1, 0] * self._quaternion_buffer[1:, 2] + self._quaternion_buffer[:-1, 1] * self._quaternion_buffer[1:, 3] - self._quaternion_buffer[:-1, 2] * self._quaternion_buffer[1:, 0] - self._quaternion_buffer[:-1, 3] * self._quaternion_buffer[1:, 1],
-            self._quaternion_buffer[:-1, 0] * self._quaternion_buffer[1:, 3] - self._quaternion_buffer[:-1, 1] * self._quaternion_buffer[1:, 2] + self._quaternion_buffer[:-1, 2] * self._quaternion_buffer[1:, 1] - self._quaternion_buffer[:-1, 3] * self._quaternion_buffer[1:, 0]
-        ])
+        vel = (2 / dt) * torch.stack(
+            [
+                self._quaternion_buffer[:-1, 0] * self._quaternion_buffer[1:, 1]
+                - self._quaternion_buffer[:-1, 1] * self._quaternion_buffer[1:, 0]
+                - self._quaternion_buffer[:-1, 2] * self._quaternion_buffer[1:, 3]
+                + self._quaternion_buffer[:-1, 3] * self._quaternion_buffer[1:, 2],
+                self._quaternion_buffer[:-1, 0] * self._quaternion_buffer[1:, 2]
+                + self._quaternion_buffer[:-1, 1] * self._quaternion_buffer[1:, 3]
+                - self._quaternion_buffer[:-1, 2] * self._quaternion_buffer[1:, 0]
+                - self._quaternion_buffer[:-1, 3] * self._quaternion_buffer[1:, 1],
+                self._quaternion_buffer[:-1, 0] * self._quaternion_buffer[1:, 3]
+                - self._quaternion_buffer[:-1, 1] * self._quaternion_buffer[1:, 2]
+                + self._quaternion_buffer[:-1, 2] * self._quaternion_buffer[1:, 1]
+                - self._quaternion_buffer[:-1, 3] * self._quaternion_buffer[1:, 0],
+            ]
+        )
         # Update angular velocities in the world frame
         self._angular_velocities_world = torch.mean(vel, dim=1).unsqueeze(0)
-    
+
     def update_linear_velocities(self):
         # Take time buffer extremas and convert to seconds
         dt = (self._time_buffer[-1] - self._time_buffer[0]) * 1e-9 / self._buffer_size
@@ -51,29 +63,29 @@ class OptitrackStatePreProcessor(Registerable, BaseStatePreProcessor):
         vel = torch.diff(self._position_buffer, dim=0) / (dt)
         # Update linear velocities in the world frame
         self._linear_velocities_world = torch.mean(vel, dim=0).unsqueeze(0)
-        
+
     @staticmethod
     def append_left_tensor_queue(queue_tensor: torch.Tensor, tensor: torch.Tensor) -> torch.Tensor:
         """Append a tensor to the left of a queue tensor.
-        
+
         Args:
             queue_tensor (torch.Tensor): The queue tensor to append the tensor to.
             tensor (torch.Tensor): The tensor to append to the queue tensor.
-        
+
         Returns:
             torch.Tensor: The updated queue tensor."""
 
         queue_tensor = torch.cat((tensor.unsqueeze(0), queue_tensor[:-1]))
         return queue_tensor
-    
+
     @staticmethod
     def append_right_tensor_queue(queue_tensor: torch.Tensor, tensor: torch.Tensor) -> torch.Tensor:
         """Append a tensor to the right of a queue tensor.
-        
+
         Args:
             queue_tensor (torch.Tensor): The queue tensor to append the tensor to.
             tensor (torch.Tensor): The tensor to append to the queue tensor.
-        
+
         Returns:
             torch.Tensor: The updated queue tensor."""
 
@@ -83,13 +95,18 @@ class OptitrackStatePreProcessor(Registerable, BaseStatePreProcessor):
     def update_state_ROS(self, pose: PoseStamped, **kwargs) -> None:
         """Update the state processor with a new pose message. If the state processor is primed, update the state.
         When primed, the state can be accessed through the state variables.
-        
+
         Args:
             pose (PoseStamped): The pose message to update the state processor with."""
 
         # Convert ROS message to tensors
-        position = torch.tensor([pose.pose.position.x, pose.pose.position.y, pose.pose.position.z], device=self._device)
-        quaternion = torch.tensor([pose.pose.orientation.w, pose.pose.orientation.x, pose.pose.orientation.y, pose.pose.orientation.z], device=self._device)
+        position = torch.tensor(
+            [pose.pose.position.x, pose.pose.position.y, pose.pose.position.z], device=self._device
+        )
+        quaternion = torch.tensor(
+            [pose.pose.orientation.w, pose.pose.orientation.x, pose.pose.orientation.y, pose.pose.orientation.z],
+            device=self._device,
+        )
         time = torch.tensor(pose.header.stamp.nanosec, device=self._device)
         # Update buffers
         self.append_right_tensor_queue(self._position_buffer, position)
@@ -107,7 +124,7 @@ class OptitrackStatePreProcessor(Registerable, BaseStatePreProcessor):
             # Update velocities
             self.update_linear_velocities()
             self.update_angular_velocities()
-    
+
     def reset(self) -> None:
         """Reset the state processor to its initial state."""
 

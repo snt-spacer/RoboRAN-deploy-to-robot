@@ -3,18 +3,20 @@ from dataclasses import dataclass
 import torch
 import copy
 
+
 class BaseFormaterCfg:
     pass
 
+
 class BaseFormater:
     def __init__(
-            self,
-            state_preprocessor: BaseStatePreProcessor,
-            device: str = 'cuda',
-            max_steps: int = 500,
-            task_cfg: BaseFormaterCfg = BaseFormaterCfg(),
-            **kwargs,
-        ) -> None:
+        self,
+        state_preprocessor: BaseStatePreProcessor,
+        device: str = "auto",
+        max_steps: int = 500,
+        task_cfg: BaseFormaterCfg = BaseFormaterCfg(),
+        **kwargs,
+    ) -> None:
 
         # General parameters
         self._device = device
@@ -22,6 +24,12 @@ class BaseFormater:
         self.ROS_TYPE = None
         self.ROS_CALLBACK = self.update_goal_ROS
         self.ROS_QUEUE_SIZE = 1
+
+        # Device selection
+        if device == "auto":
+            self._device = "cuda:0" if torch.cuda.is_available() else "cpu"
+        else:
+            self._device = device
 
         # Task parameters
         self._max_steps = max_steps
@@ -54,7 +62,7 @@ class BaseFormater:
             self._step_logs = copy.copy(self._step)
             self.update_logs()
         return self._logs
-    
+
     @property
     def logs_names(self):
         return self._logs.keys()
@@ -62,7 +70,7 @@ class BaseFormater:
     @property
     def observation(self):
         return self._observation
-    
+
     def check_task_completion(self):
         raise NotImplementedError("Check task completion method not implemented")
 

@@ -4,15 +4,15 @@ from std_msgs.msg import ByteMultiArray
 import torch
 import copy
 
+
 class FloatingPlatformInterface(BaseRobotInterface):
     def __init__(self, *args, device: str | None = None, **kwargs):
-        super().__init__(*args, **kwargs)
+        super().__init__(*args, device=device, **kwargs)
         self.last_actions = torch.zeros((1, 8), device=self._device)
         self.commands = ByteMultiArray()
-        self.commands.data = [0] * 9 # Everything off
+        self.commands.data = [0] * 9  # Everything off
 
         self.ROS_ACTION_TYPE = ByteMultiArray
-        self._device = device
 
     @property
     def kill_action(self) -> ByteMultiArray:
@@ -31,9 +31,9 @@ class FloatingPlatformInterface(BaseRobotInterface):
         self.commands.data = [1] + actions.int().tolist()
         # Return the commands
         return self.commands
-    
+
     def reset(self):
         super().reset()
         self.last_actions = torch.zeros((1, 8), device=self._device)
-        self.commands.data = [0] * 9 # Everything off
+        self.commands.data = [0] * 9  # Everything off
         self.build_logs()

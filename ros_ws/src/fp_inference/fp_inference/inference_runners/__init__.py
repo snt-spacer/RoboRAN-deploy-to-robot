@@ -1,8 +1,9 @@
 from .base_inference_runner import BaseInferenceRunner
 
+
 class Registerable:
     def __init_subclass__(cls: BaseInferenceRunner):
-        cls_name = cls.__name__[:-15] # Remove "InferenceRunner" from the class name
+        cls_name = cls.__name__[:-15]  # Remove "InferenceRunner" from the class name
         InferenceRunnerFactory.register(cls_name, cls)
 
 
@@ -30,5 +31,6 @@ class InferenceRunnerFactory:
         print("=============================================")
 
         return cls.registry[cls_name](*args, **kwargs)
+
 
 from .skrl_inference import SKRLInferenceRunner

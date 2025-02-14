@@ -1,8 +1,9 @@
 import datetime
 import os
 
+
 class Logger:
-    def __init__(self, logs_names:list=[], hooks: list = [], enabled: bool = False, save_path: str | None = None):
+    def __init__(self, logs_names: list = [], hooks: list = [], enabled: bool = False, save_path: str | None = None):
         self.logs_names = logs_names
         self.hooks = hooks
 
@@ -17,7 +18,7 @@ class Logger:
     @property
     def logs(self) -> dict[str, list]:
         return self._logs
-    
+
     @property
     def logs_names(self) -> list[str]:
         return self._logs.keys()
@@ -34,7 +35,7 @@ class Logger:
 
     def collect_logs(self, logs: dict) -> None:
         """Collect logs from the hooks. The logs contain torch.Tensors.
-        
+
         Args:
             logs (dict): The logs to be collected."""
 
@@ -55,4 +56,3 @@ class Logger:
             os.makedirs(os.path.join(self.save_path, "logs"), exist_ok=True)
 
             raise NotImplementedError("Save method not implemented.")
-

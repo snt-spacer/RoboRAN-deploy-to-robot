@@ -2,12 +2,13 @@ import matplotlib.pyplot as plt
 import numpy as np
 import datetime
 
+
 def plot_episode_data(episode_data, save_path=None):
     """Plots the trajectory data from an episode and saves the figure."""
 
     if save_path is None:
         raise ValueError("save path cannot be None.")
-    
+
     save_path += "/episode_data.png"
     fig, axes = plt.subplots(3, 2, figsize=(12, 10))
 

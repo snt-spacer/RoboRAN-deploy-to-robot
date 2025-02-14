@@ -61,14 +61,15 @@ class SKRLInferenceRunner:
 
         self.load_model(logdir, action_space, checkpoint_path)
 
-    def load_model(self,
-                   log_dir: str | None = None,
-                   action_space: spaces | None = None,
-                   checkpoint_path: str | None = None,
-                   **kwargs,
-                   ) -> None:
+    def load_model(
+        self,
+        log_dir: str | None = None,
+        action_space: spaces | None = None,
+        checkpoint_path: str | None = None,
+        **kwargs,
+    ) -> None:
         """Load the RL model from a given path.
-        
+
         Args:
             log_dir: The directory where the model is configuration and weights are stored.
             action_space: The action space of the agent.
@@ -92,11 +93,12 @@ class SKRLInferenceRunner:
         self._action_space = action_space
 
         # Get the checkpoint path
-        self._checkpoint_path = checkpoint_path if checkpoint_path is not None else f"{log_dir}/checkpoints/best_agent.pt"
+        self._checkpoint_path = (
+            checkpoint_path if checkpoint_path is not None else f"{log_dir}/checkpoints/best_agent.pt"
+        )
 
         # Build the model
         self.build(self._checkpoint_path)
-        
 
     def load_weigths(self, path: str) -> None:
         """Load the model from the specified path
@@ -105,7 +107,7 @@ class SKRLInferenceRunner:
 
         Args:
             path: The path to the checkpoint to load the model from."""
-        
+
         if version.parse(torch.__version__) >= version.parse("1.13"):
             modules = torch.load(path, map_location=self._device, weights_only=False)  # prevent torch:FutureWarning
         else:
@@ -153,14 +155,14 @@ class SKRLInferenceRunner:
             else:
                 self.act = self.sac_act
 
-    def ppo_act(self, states: torch.Tensor, timestep: int = 0, timesteps: int = 0, **kwargs) ->torch.Tensor:
+    def ppo_act(self, states: torch.Tensor, timestep: int = 0, timesteps: int = 0, **kwargs) -> torch.Tensor:
         """Perform the PPO action.
-        
+
         Args:
             states: The states to perform the action on.
             timestep: The current timestep.
             timesteps: The total number of timesteps.
-        
+
         Returns:
             torch.Tensor: The action to perform."""
 
@@ -176,15 +178,15 @@ class SKRLInferenceRunner:
 
     def ppo_rnn_act(self, states: torch.Tensor, timestep: int = 0, timesteps: int = 0, **kwargs) -> torch.Tensor:
         """Perform the PPO action with RNN.
-        
+
         Args:
             states: The states to perform the action on.
             timestep: The current timestep.
             timesteps: The total number of timesteps.
-        
+
         Returns:
             torch.Tensor: The action to perform."""
-        
+
         # sample random actions
         if timestep < 0:
             return self._policy.random_act(
@@ -209,10 +211,10 @@ class SKRLInferenceRunner:
             states: The states to perform the action on.
             timestep: The current timestep.
             timesteps: The total number of timesteps.
-        
+
         Returns:
             torch.Tensor: The action to perform."""
-        
+
         # sample random actions
         if timestep < 0:
             return self._policy.random_act({"states": self._state_preprocessor(states)}, role="policy")
@@ -225,7 +227,7 @@ class SKRLInferenceRunner:
 
     def sac_rnn_act(self, states: torch.Tensor, timestep: int = 0, timesteps: int = 0, **kwargs) -> torch.Tensor:
         """Perform the SAC action with RNN.
-        
+
         Args:
             states: The states to perform the action on.
             timestep: The current timestep.
@@ -233,7 +235,7 @@ class SKRLInferenceRunner:
 
         Returns:
             torch.Tensor: The action to perform."""
-        
+
         # sample random action
         if timestep < 0:
             return self._policy.random_act(
@@ -273,4 +275,3 @@ class SKRLInferenceRunner:
         self.checkpoint_modules = {"policy": self._policy, "state_preprocessor": self._state_preprocessor}
         # Fetch the weights from the checkpoint
         self.load_weigths(resume_path)
-

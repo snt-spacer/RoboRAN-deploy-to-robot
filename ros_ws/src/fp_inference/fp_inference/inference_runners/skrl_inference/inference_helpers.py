@@ -17,6 +17,7 @@ from skrl.resources.noises.torch import GaussianNoise, OrnsteinUhlenbeckNoise  #
 from skrl.resources.preprocessors.torch import RunningStandardScaler  # noqa
 from skrl.resources.schedulers.torch import KLAdaptiveLR  # noqa
 
+
 def _component(name: str) -> type:
     """Get skrl component (e.g.: agent, trainer, etc..) from string identifier
 

@@ -16,9 +16,7 @@ class StateCreationNode(Node):
         self.pose_sub = self.create_subscription(
             PoseStamped, "/vrpn_client_node/FP_exp_RL/pose", self.pose_callback, 10
         )
-        self.goal_sub = self.create_subscription(
-            Point, "/spacer_floating_platform/goal", self.goal_callback, 10
-        )
+        self.goal_sub = self.create_subscription(Point, "/spacer_floating_platform/goal", self.goal_callback, 10)
 
         # Publisher
         self.state_pub = self.create_publisher(Float32MultiArray, "/rl_task_state", 10)
@@ -66,7 +64,7 @@ class StateCreationNode(Node):
     def angular_velocities(self, q: np.ndarray, dt: np.ndarray) -> np.ndarray:
         """
         Calculate the angular velocities from quaternions.
-        
+
         Args:
             q (np.ndarray): Array of quaternions.
             dt (np.ndarray): Array of time differences between quaternions.
@@ -74,11 +72,13 @@ class StateCreationNode(Node):
         Returns:
             np.ndarray: Angular velocities [roll_rate, pitch_rate, yaw_rate].
         """
-        return (2 / dt) * np.array([
-            q[:-1, 0] * q[1:, 1] - q[:-1, 1] * q[1:, 0] - q[:-1, 2] * q[1:, 3] + q[:-1, 3] * q[1:, 2],
-            q[:-1, 0] * q[1:, 2] + q[:-1, 1] * q[1:, 3] - q[:-1, 2] * q[1:, 0] - q[:-1, 3] * q[1:, 1],
-            q[:-1, 0] * q[1:, 3] - q[:-1, 1] * q[1:, 2] + q[:-1, 2] * q[1:, 1] - q[:-1, 3] * q[1:, 0]
-        ])
+        return (2 / dt) * np.array(
+            [
+                q[:-1, 0] * q[1:, 1] - q[:-1, 1] * q[1:, 0] - q[:-1, 2] * q[1:, 3] + q[:-1, 3] * q[1:, 2],
+                q[:-1, 0] * q[1:, 2] + q[:-1, 1] * q[1:, 3] - q[:-1, 2] * q[1:, 0] - q[:-1, 3] * q[1:, 1],
+                q[:-1, 0] * q[1:, 3] - q[:-1, 1] * q[1:, 2] + q[:-1, 2] * q[1:, 1] - q[:-1, 3] * q[1:, 0],
+            ]
+        )
 
     def derive_velocities(self) -> Tuple[np.ndarray, np.ndarray]:
         """
@@ -96,18 +96,19 @@ class StateCreationNode(Node):
             return np.zeros(3), np.zeros(3)
 
         # Calculate linear velocities
-        linear_positions = np.array([
-            [pose.pose.position.x, pose.pose.position.y, pose.pose.position.z]
-            for pose in self.pose_buffer
-        ])
+        linear_positions = np.array(
+            [[pose.pose.position.x, pose.pose.position.y, pose.pose.position.z] for pose in self.pose_buffer]
+        )
         linear_velocities = np.diff(linear_positions, axis=0) / (dt / len(self.pose_buffer))
         avg_linear_velocity = np.mean(linear_velocities, axis=0)
 
         # Calculate angular velocities
-        quaternions = np.array([
-            [pose.pose.orientation.w, pose.pose.orientation.x, pose.pose.orientation.y, pose.pose.orientation.z]
-            for pose in self.pose_buffer
-        ])
+        quaternions = np.array(
+            [
+                [pose.pose.orientation.w, pose.pose.orientation.x, pose.pose.orientation.y, pose.pose.orientation.z]
+                for pose in self.pose_buffer
+            ]
+        )
         dt_per_step = np.ones((len(quaternions) - 1)) * (dt / (len(quaternions) - 1))
         angular_velocities = self.angular_velocities(quaternions, dt_per_step)
         avg_angular_velocity = np.mean(angular_velocities, axis=1)
