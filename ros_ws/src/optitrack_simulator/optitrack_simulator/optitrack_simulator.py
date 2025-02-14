@@ -19,6 +19,11 @@ class OptiTrackSimulator(Node):
         y = 2.0 * np.sin(self.t)
         z = 1.0  # Fixed height
 
+        # Generate Oscillating orientation from -pi to pi
+        heading = np.cos(self.t) * np.pi
+        qw = np.cos(heading / 2)
+        qz = np.sin(heading / 2)
+
         # Create PoseStamped message
         pose_msg = PoseStamped()
         pose_msg.header.stamp = self.get_clock().now().to_msg()
@@ -26,10 +31,10 @@ class OptiTrackSimulator(Node):
         pose_msg.pose.position.x = x
         pose_msg.pose.position.y = y
         pose_msg.pose.position.z = z
-        pose_msg.pose.orientation.w = 1.0
+        pose_msg.pose.orientation.w = qw
         pose_msg.pose.orientation.x = 0.0
         pose_msg.pose.orientation.y = 0.0
-        pose_msg.pose.orientation.z = 0.0
+        pose_msg.pose.orientation.z = qz
 
         self.pose_pub.publish(pose_msg)
 
