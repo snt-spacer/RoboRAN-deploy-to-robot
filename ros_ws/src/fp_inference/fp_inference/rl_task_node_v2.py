@@ -106,14 +106,8 @@ class RLTaskNode(Node):
         )
 
         self.get_logger().info("Initializing logger...")
-        logs_names = [
-            self.state_preprocessor.logs_names,
-            self.observation_formater.logs_names,
-            self.robot_interface.logs_names,
-        ]
-        log_hooks = [self.state_preprocessor.get_logs, self.observation_formater.get_logs, self.robot_interface.get_logs]
-
-        self.data_logger = Logger(logs_names, log_hooks, self._enable_logging, self._logs_save_path)
+        objects = [self.state_preprocessor, self.observation_formater, self.robot_interface]
+        self.data_logger = Logger(objects, self._enable_logging, self._logs_save_path)
 
         self.get_logger().info("Opening ROS2 interfaces...")
         # ROS2 Subscriptions

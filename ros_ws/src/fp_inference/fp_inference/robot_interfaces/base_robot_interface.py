@@ -31,6 +31,7 @@ class BaseRobotInterface:
     def build_logs(self):
         # Log hook
         self._logs = {}
+        self._logs_specs = {}
         self._logs["actions"] = None
 
     def update_logs(self):
@@ -46,6 +47,10 @@ class BaseRobotInterface:
     @property
     def logs_names(self) -> list[str]:
         return self._logs.keys()
+
+    @property
+    def logs_specs(self):
+        return self._logs_specs
 
     @property
     def last_actions(self) -> torch.Tensor:

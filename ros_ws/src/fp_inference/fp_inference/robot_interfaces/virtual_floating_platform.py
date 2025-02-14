@@ -20,12 +20,17 @@ class VirtualFloatingPlatformInterface(Registerable, BaseRobotInterface):
         # Action space
         self._action_space = spaces.MultiDiscrete([2] * 8)
 
+
     @property
     def kill_action(self) -> Int16MultiArray:
         kill_command = Int16MultiArray()
         actions = [0] * 9
         kill_command.data = [value.to_bytes(1, byteorder="little") for value in actions.int().tolist()]
         return kill_command
+
+    def build_logs(self):
+        super().build_logs()
+        self._logs_specs["actions"] = [".t0", ".t1", ".t2", ".t3", ".t4", ".t5", ".t6", ".t7"]
 
     def cast_actions(self, actions) -> Int16MultiArray:
         # Actions are expected to be either 0 or 1

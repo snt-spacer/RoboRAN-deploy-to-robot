@@ -62,15 +62,25 @@ class BaseStatePreProcessor:
     def build_logs(self):
         # Log hook
         self._logs = {}
-        self._logs["position_world"] = 0
-        self._logs["quaternion_world"] = 0
-        self._logs["heading_world"] = 0
-        self._logs["linear_velocities_world"] = 0
-        self._logs["angular_velocities_world"] = 0
-        self._logs["linear_velocities_body"] = 0
-        self._logs["angular_velocities_body"] = 0
-        self._logs["ros_time"] = 0
-        self._logs["elapsed_time"] = 0
+        self._logs["position_world"] = torch.zeros((1,3), device=self._device)
+        self._logs["quaternion_world"] = torch.zeros((1,4), device=self._device)
+        self._logs["heading_world"] = torch.zeros((1,1), device=self._device)
+        self._logs["linear_velocities_world"] = torch.zeros((1,3), device=self._device)
+        self._logs["angular_velocities_world"] = torch.zeros((1,3), device=self._device)
+        self._logs["linear_velocities_body"] = torch.zeros((1,3), device=self._device)
+        self._logs["angular_velocities_body"] = torch.zeros((1,3), device=self._device)
+        self._logs["ros_time"] = torch.zeros((1,1), device=self._device)
+        self._logs["elapsed_time"] = torch.zeros((1,1), device=self._device)
+        self._logs_specs = {}
+        self._logs_specs["position_world"] = [".x.m", ".y.m", ".z.m"]
+        self._logs_specs["quaternion_world"] = [".w.quat", ".x.quat", ".y.quat", ".z.quat"]
+        self._logs_specs["heading_world"] = [".rad"]
+        self._logs_specs["linear_velocities_world"] = ["x.m/s", "y.m/s", "z.m/s"]
+        self._logs_specs["angular_velocities_world"] = ["x.rad/s", "y.rad/s", "z.rad/s"]
+        self._logs_specs["linear_velocities_body"] = ["x.m/s", "y.m/s", "z.m/s"]
+        self._logs_specs["angular_velocities_body"] = ["x.rad/s", "y.rad/s", "z.rad/s"]
+        self._logs_specs["ros_time"] = [".s"]
+        self._logs_specs["elapsed_time"] = [".s"]
 
     def update_logs(self):
         self._logs["position_world"] = self._position
@@ -80,10 +90,10 @@ class BaseStatePreProcessor:
         self._logs["angular_velocities_world"] = self._angular_velocities_world
         self._logs["linear_velocities_body"] = self._linear_velocities_body
         self._logs["angular_velocities_body"] = self._angular_velocities_body
-        self._logs["ros_time"] = torch.tensor([self._time], device=self._device)
+        self._logs["ros_time"] = torch.tensor([[self._time]], device=self._device)
         if self._start_time == -1:
             self._start_time = copy.copy(self._time)
-        self._logs["elapsed_time"] = torch.tensor([self._time - self._start_time], device=self._device)
+        self._logs["elapsed_time"] = torch.tensor([[self._time - self._start_time]], device=self._device)
 
     @property
     def logs(self):
@@ -95,6 +105,10 @@ class BaseStatePreProcessor:
     @property
     def logs_names(self):
         return self._logs.keys()
+
+    @property
+    def logs_specs(self):
+        return self._logs_specs
 
     @property
     def is_primed(self) -> bool:

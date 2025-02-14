@@ -31,6 +31,10 @@ class FloatingPlatformInterface(Registerable, BaseRobotInterface):
         kill_command.data = [value.to_bytes(1, byteorder="little") for value in actions]
         return kill_command
 
+    def build_logs(self):
+        super().build_logs()
+        self._logs_specs["actions"] = [".t0", ".t1", ".t2", ".t3", ".t4", ".t5", ".t6", ".t7"]
+
     def cast_actions(self, actions) -> ByteMultiArray:
         # Actions are expected to be either 0 or 1
         super().cast_actions(actions)

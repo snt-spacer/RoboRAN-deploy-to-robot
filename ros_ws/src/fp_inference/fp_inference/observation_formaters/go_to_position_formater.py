@@ -38,6 +38,9 @@ class GoToPositionFormater(Registerable, BaseFormater):
         self._logs["distance_error"] = torch.zeros((1, 1), device=self._device)
         self._logs["position_heading_error"] = torch.tensor((1, 1), device=self._device)
         self._logs["target_position"] = torch.tensor((1, 2), device=self._device)
+        self._logs_specs["distance_error"] = [".m"]
+        self._logs_specs["position_heading_error"] = [".rad"]
+        self._logs_specs["target_position"] = [".x.m", ".y.m"]
 
     def update_logs(self):
         self._logs["distance_error"] = self.dist
@@ -58,7 +61,7 @@ class GoToPositionFormater(Registerable, BaseFormater):
     def format_observation(self, actions: torch.Tensor | None = None) -> None:
         super().format_observation(actions)
         # Position distance
-        self.dist = torch.linalg.norm(self._target_position - self._state_preprocessor.position[:, :2], dim=1)
+        self.dist = torch.linalg.norm(self._target_position - self._state_preprocessor.position[:, :2], dim=1, keepdim=True)
         # Heading distance
         target_heading_w = torch.atan2(
             self._target_position[:, 1] - self._state_preprocessor.position[:, 1],

@@ -49,6 +49,7 @@ class BaseFormater:
 
     def build_logs(self):
         self._logs = {}
+        self._logs_specs = {}
 
     def update_logs(self):
         raise NotImplementedError("Update logs method not implemented")
@@ -68,6 +69,10 @@ class BaseFormater:
     @property
     def logs_names(self):
         return self._logs.keys()
+    
+    @property
+    def logs_specs(self):
+        return self._logs_specs
 
     @property
     def observation(self):
