@@ -33,16 +33,16 @@ class BaseStatePreProcessor:
             self._device = device
 
         # State variables
-        self._time: torch.Tensor = torch.zeros((1,1), device=self._device)
-        self._position: torch.Tensor = torch.zeros((1,3), device=self._device)
-        self._heading: torch.Tensor = torch.zeros((1,1), device=self._device)
-        self._quaternion: torch.Tensor = torch.zeros((1,4), device=self._device)
-        self._rotation_matrix: torch.Tensor = torch.zeros((1,2,2), device=self._device)
-        self._tranformation_matrix: torch.Tensor = torch.zeros((1,3,3), device=self._device)
-        self._linear_velocities_world: torch.Tensor = torch.zeros((1,3), device=self._device)
-        self._angular_velocities_world: torch.Tensor = torch.zeros((1,3), device=self._device)
-        self._linear_velocities_body: torch.Tensor = torch.zeros((1,3), device=self._device)
-        self._angular_velocities_body: torch.Tensor = torch.zeros((1,3), device=self._device)
+        self._time: torch.Tensor = torch.zeros((1, 1), device=self._device)
+        self._position: torch.Tensor = torch.zeros((1, 3), device=self._device)
+        self._heading: torch.Tensor = torch.zeros((1, 1), device=self._device)
+        self._quaternion: torch.Tensor = torch.zeros((1, 4), device=self._device)
+        self._rotation_matrix: torch.Tensor = torch.zeros((1, 2, 2), device=self._device)
+        self._tranformation_matrix: torch.Tensor = torch.zeros((1, 3, 3), device=self._device)
+        self._linear_velocities_world: torch.Tensor = torch.zeros((1, 3), device=self._device)
+        self._angular_velocities_world: torch.Tensor = torch.zeros((1, 3), device=self._device)
+        self._linear_velocities_body: torch.Tensor = torch.zeros((1, 3), device=self._device)
+        self._angular_velocities_body: torch.Tensor = torch.zeros((1, 3), device=self._device)
 
         # Lazy updates of state variables
         self._step_heading: int = 0
@@ -62,15 +62,15 @@ class BaseStatePreProcessor:
     def build_logs(self):
         # Log hook
         self._logs = {}
-        self._logs["position_world"] = torch.zeros((1,3), device=self._device)
-        self._logs["quaternion_world"] = torch.zeros((1,4), device=self._device)
-        self._logs["heading_world"] = torch.zeros((1,1), device=self._device)
-        self._logs["linear_velocities_world"] = torch.zeros((1,3), device=self._device)
-        self._logs["angular_velocities_world"] = torch.zeros((1,3), device=self._device)
-        self._logs["linear_velocities_body"] = torch.zeros((1,3), device=self._device)
-        self._logs["angular_velocities_body"] = torch.zeros((1,3), device=self._device)
-        self._logs["ros_time"] = torch.zeros((1,1), device=self._device)
-        self._logs["elapsed_time"] = torch.zeros((1,1), device=self._device)
+        self._logs["position_world"] = torch.zeros((1, 3), device=self._device)
+        self._logs["quaternion_world"] = torch.zeros((1, 4), device=self._device)
+        self._logs["heading_world"] = torch.zeros((1, 1), device=self._device)
+        self._logs["linear_velocities_world"] = torch.zeros((1, 3), device=self._device)
+        self._logs["angular_velocities_world"] = torch.zeros((1, 3), device=self._device)
+        self._logs["linear_velocities_body"] = torch.zeros((1, 3), device=self._device)
+        self._logs["angular_velocities_body"] = torch.zeros((1, 3), device=self._device)
+        self._logs["ros_time"] = torch.zeros((1, 1), device=self._device)
+        self._logs["elapsed_time"] = torch.zeros((1, 1), device=self._device)
         self._logs_specs = {}
         self._logs_specs["position_world"] = [".x.m", ".y.m", ".z.m"]
         self._logs_specs["quaternion_world"] = [".w.quat", ".x.quat", ".y.quat", ".z.quat"]
@@ -211,7 +211,7 @@ class BaseStatePreProcessor:
             # Update the step count for lazy updates
             self._step_angular_velocity_body = copy.copy(self._step)
         return self._angular_velocities_body
-    
+
     def get_logs(self):
         return self.logs
 
@@ -240,7 +240,10 @@ class BaseStatePreProcessor:
         Returns:
             torch.Tensor: The 2D rotation matrix. Tensor shape: [N, 2, 2]"""
 
-        return torch.tensor([[torch.cos(heading), -torch.sin(heading)], [torch.sin(heading), torch.cos(heading)]], device=heading.device)
+        return torch.tensor(
+            [[torch.cos(heading), -torch.sin(heading)], [torch.sin(heading), torch.cos(heading)]],
+            device=heading.device,
+        )
 
     @staticmethod
     def get_quat_from_heading(heading: torch.Tensor) -> torch.Tensor:
@@ -347,16 +350,16 @@ class BaseStatePreProcessor:
         self._start_time = -1
 
         # State variables
-        self._time: torch.Tensor = torch.zeros((1,1), device=self._device)
-        self._position: torch.Tensor = torch.zeros((1,3), device=self._device)
-        self._heading: torch.Tensor = torch.zeros((1,1), device=self._device)
-        self._quaternion: torch.Tensor = torch.zeros((1,4), device=self._device)
-        self._rotation_matrix: torch.Tensor = torch.zeros((1,2,2), device=self._device)
-        self._tranformation_matrix: torch.Tensor = torch.zeros((1,3,3), device=self._device)
-        self._linear_velocities_world: torch.Tensor = torch.zeros((1,3), device=self._device)
-        self._angular_velocities_world: torch.Tensor = torch.zeros((1,3), device=self._device)
-        self._linear_velocities_body: torch.Tensor = torch.zeros((1,3), device=self._device)
-        self._angular_velocities_body: torch.Tensor = torch.zeros((1,3), device=self._device)
+        self._time: torch.Tensor = torch.zeros((1, 1), device=self._device)
+        self._position: torch.Tensor = torch.zeros((1, 3), device=self._device)
+        self._heading: torch.Tensor = torch.zeros((1, 1), device=self._device)
+        self._quaternion: torch.Tensor = torch.zeros((1, 4), device=self._device)
+        self._rotation_matrix: torch.Tensor = torch.zeros((1, 2, 2), device=self._device)
+        self._tranformation_matrix: torch.Tensor = torch.zeros((1, 3, 3), device=self._device)
+        self._linear_velocities_world: torch.Tensor = torch.zeros((1, 3), device=self._device)
+        self._angular_velocities_world: torch.Tensor = torch.zeros((1, 3), device=self._device)
+        self._linear_velocities_body: torch.Tensor = torch.zeros((1, 3), device=self._device)
+        self._angular_velocities_body: torch.Tensor = torch.zeros((1, 3), device=self._device)
 
         # Reset lazy updates
         self._step_heading = 0

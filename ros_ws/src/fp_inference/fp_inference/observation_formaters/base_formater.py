@@ -69,7 +69,7 @@ class BaseFormater:
     @property
     def logs_names(self):
         return self._logs.keys()
-    
+
     @property
     def logs_specs(self):
         return self._logs_specs
@@ -77,11 +77,11 @@ class BaseFormater:
     @property
     def observation(self):
         return self._observation
- 
+
     @property
     def task_completed(self):
         return self._task_completed
-    
+
     def get_logs(self):
         return self.logs
 

@@ -61,14 +61,16 @@ class GoToPositionFormater(Registerable, BaseFormater):
     def format_observation(self, actions: torch.Tensor | None = None) -> None:
         super().format_observation(actions)
         # Position distance
-        self.dist = torch.linalg.norm(self._target_position - self._state_preprocessor.position[:, :2], dim=1, keepdim=True)
+        self.dist = torch.linalg.norm(
+            self._target_position - self._state_preprocessor.position[:, :2], dim=1, keepdim=True
+        )
         # Heading distance
         target_heading_w = torch.atan2(
             self._target_position[:, 1] - self._state_preprocessor.position[:, 1],
             self._target_position[:, 0] - self._state_preprocessor.position[:, 0],
         )
-        #print(target_heading_w.shape)
-        #print(self._state_preprocessor.heading.shape)
+        # print(target_heading_w.shape)
+        # print(self._state_preprocessor.heading.shape)
         self.target_heading_error = torch.atan2(
             torch.sin(target_heading_w - self._state_preprocessor.heading),
             torch.cos(target_heading_w - self._state_preprocessor.heading),

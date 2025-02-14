@@ -20,7 +20,6 @@ class VirtualFloatingPlatformInterface(Registerable, BaseRobotInterface):
         # Action space
         self._action_space = spaces.MultiDiscrete([2] * 8)
 
-
     @property
     def kill_action(self) -> Int16MultiArray:
         kill_command = Int16MultiArray()

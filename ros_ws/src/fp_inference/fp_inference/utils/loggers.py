@@ -4,6 +4,7 @@ import datetime
 import torch
 import os
 
+
 # Could be nicer, if the subclasses where accessing an instance of the logger.
 class Logger:
     def __init__(self, objects: list = [], enabled: bool = False, save_path: str | None = None):
@@ -25,7 +26,7 @@ class Logger:
     @property
     def logs_names(self) -> list[str]:
         return self._logs.keys()
-    
+
     def initialize(self):
         self._logs_names = [o.logs_names for o in self._objects]
         logs_specs = [o.logs_specs for o in self._objects]
@@ -34,7 +35,7 @@ class Logger:
         self._logs_specs = {}
         for logs_spec in logs_specs:
             self._logs_specs.update(logs_spec)
-    
+
     def print_info(self) -> None:
         print("=============================================")
         print("Logger information:")
@@ -74,10 +75,9 @@ class Logger:
             numpy_log = tensor_log.cpu().numpy()
             specs = self._logs_specs[name]
             for i, spec in enumerate(specs):
-                data[name+spec] = numpy_log[:, i]
+                data[name + spec] = numpy_log[:, i]
         df = pd.DataFrame(data)
         return df
-                 
 
     def save(self, robot_interface_name: str, inference_runner_name: str, observation_formater_name: str) -> None:
         if self._enabled:
@@ -87,4 +87,4 @@ class Logger:
             os.makedirs(os.path.join(self._save_path, "logs"), exist_ok=True)
             save_path = os.path.join(self._save_path, "logs", name)
             df = self.convert_buffer()
-            df.to_csv(save_path + '.csv', sep=",", index=False, header=True)
+            df.to_csv(save_path + ".csv", sep=",", index=False, header=True)

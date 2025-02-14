@@ -63,7 +63,7 @@ class BaseRobotInterface:
     @property
     def kill_action(self) -> Any:
         raise NotImplementedError("Kill action not implemented")
- 
+
     def get_logs(self):
         return self.logs
 

@@ -17,16 +17,33 @@ from .trajectory_plotter import plot_episode_data
 import datetime
 import os
 
+
 class RLTaskNode(Node):
-    def __init__(self, task_name: str, goal: Tuple[float, float], num_steps_episode: int = 200, use_virtual_lab: bool = True, save_history: bool = False):
+    def __init__(
+        self,
+        task_name: str,
+        goal: Tuple[float, float],
+        num_steps_episode: int = 200,
+        use_virtual_lab: bool = True,
+        save_history: bool = False,
+    ):
         super().__init__("rl_task_node")
 
         # Mode Selection
         self.use_virtual_lab = use_virtual_lab
-        self.topic_prefix = "/omniFPS/Robots/FloatingPlatform" if self.use_virtual_lab else "/vrpn_client_node/FP_exp_RL"
-        self.save_history = save_history # Save episode data for analysis
+        self.topic_prefix = (
+            "/omniFPS/Robots/FloatingPlatform" if self.use_virtual_lab else "/vrpn_client_node/FP_exp_RL"
+        )
+        self.save_history = save_history  # Save episode data for analysis
         if self.save_history:
-            self.episode_data = {"position": [], "lin_vel": [], "ang_vel": [], "dist_to_goal": [], "heading_error": [], "actions": []}
+            self.episode_data = {
+                "position": [],
+                "lin_vel": [],
+                "ang_vel": [],
+                "dist_to_goal": [],
+                "heading_error": [],
+                "actions": [],
+            }
         # Task details
         self.task_name = task_name
         self.goal = torch.tensor(goal, dtype=torch.float32)
@@ -35,7 +52,9 @@ class RLTaskNode(Node):
 
         # State representation
         self.prev_action = torch.zeros(8, dtype=torch.float32)
-        self.state = torch.zeros(14, dtype=torch.float32) # [0: target_dist, 1-2: target_heading, 3-4: lin_vel, 5: yaw_rate, 6-14: prev_action]
+        self.state = torch.zeros(
+            14, dtype=torch.float32
+        )  # [0: target_dist, 1-2: target_heading, 3-4: lin_vel, 5: yaw_rate, 6-14: prev_action]
         self.air_bearing = torch.tensor((1,), dtype=torch.float32)
 
         # Robot state variables
@@ -57,8 +76,9 @@ class RLTaskNode(Node):
         self.create_subscription(PoseStamped, "/FloatingPlatform/goal", self.goal_callback, 1)
 
         # ROS2 Publisher for Actions
-        self.action_pub = self.create_publisher(ByteMultiArray if self.use_virtual_lab else Int16MultiArray, 
-                                                f"{self.topic_prefix}/thrusters/input", 1)
+        self.action_pub = self.create_publisher(
+            ByteMultiArray if self.use_virtual_lab else Int16MultiArray, f"{self.topic_prefix}/thrusters/input", 1
+        )
 
         # Action Message Format
         self.thruster_msg = ByteMultiArray() if self.use_virtual_lab else Int16MultiArray()
@@ -70,7 +90,9 @@ class RLTaskNode(Node):
         model_path = "models/FP_GoToPosition"
         self.load_model(model_path)
 
-        self.get_logger().info(f"RL Task Node initialized for task: {self.task_name} (Virtual: {self.use_virtual_lab})")
+        self.get_logger().info(
+            f"RL Task Node initialized for task: {self.task_name} (Virtual: {self.use_virtual_lab})"
+        )
 
     # --------------------- Utility Functions ---------------------
 
@@ -81,18 +103,17 @@ class RLTaskNode(Node):
 
     def get_rotation_matrix(self, heading: float) -> np.ndarray:
         """Generate a 2D rotation matrix for a given heading angle."""
-        return np.array([
-            [np.cos(heading), -np.sin(heading)],
-            [np.sin(heading), np.cos(heading)]
-        ])
+        return np.array([[np.cos(heading), -np.sin(heading)], [np.sin(heading), np.cos(heading)]])
 
     def get_angular_velocities(self, q: np.ndarray, dt: np.ndarray) -> np.ndarray:
         """Compute angular velocities from quaternions."""
-        return (2 / dt) * np.array([
-            q[:-1, 0] * q[1:, 1] - q[:-1, 1] * q[1:, 0] - q[:-1, 2] * q[1:, 3] + q[:-1, 3] * q[1:, 2],
-            q[:-1, 0] * q[1:, 2] + q[:-1, 1] * q[1:, 3] - q[:-1, 2] * q[1:, 0] - q[:-1, 3] * q[1:, 1],
-            q[:-1, 0] * q[1:, 3] - q[:-1, 1] * q[1:, 2] + q[:-1, 2] * q[1:, 1] - q[:-1, 3] * q[1:, 0]
-        ])
+        return (2 / dt) * np.array(
+            [
+                q[:-1, 0] * q[1:, 1] - q[:-1, 1] * q[1:, 0] - q[:-1, 2] * q[1:, 3] + q[:-1, 3] * q[1:, 2],
+                q[:-1, 0] * q[1:, 2] + q[:-1, 1] * q[1:, 3] - q[:-1, 2] * q[1:, 0] - q[:-1, 3] * q[1:, 1],
+                q[:-1, 0] * q[1:, 3] - q[:-1, 1] * q[1:, 2] + q[:-1, 2] * q[1:, 1] - q[:-1, 3] * q[1:, 0],
+            ]
+        )
 
     def derive_velocities(self) -> Tuple[torch.Tensor, torch.Tensor]:
         """Compute linear and angular velocities from pose history."""
@@ -103,25 +124,33 @@ class RLTaskNode(Node):
         if dt == 0:
             return np.zeros(3), np.zeros(3)
 
-        linear_positions = np.array([[pose.pose.position.x, pose.pose.position.y, pose.pose.position.z]
-                                     for pose in self.pose_buffer])
+        linear_positions = np.array(
+            [[pose.pose.position.x, pose.pose.position.y, pose.pose.position.z] for pose in self.pose_buffer]
+        )
         linear_velocities = np.diff(linear_positions, axis=0) / (dt / len(self.pose_buffer))
         avg_linear_velocity = np.mean(linear_velocities, axis=0)
 
-        quaternions = np.array([[pose.pose.orientation.w, pose.pose.orientation.x, pose.pose.orientation.y, pose.pose.orientation.z]
-                                for pose in self.pose_buffer])
-        angular_velocities = self.get_angular_velocities(quaternions, np.ones(len(quaternions) - 1) * dt / (len(quaternions) - 1))
+        quaternions = np.array(
+            [
+                [pose.pose.orientation.w, pose.pose.orientation.x, pose.pose.orientation.y, pose.pose.orientation.z]
+                for pose in self.pose_buffer
+            ]
+        )
+        angular_velocities = self.get_angular_velocities(
+            quaternions, np.ones(len(quaternions) - 1) * dt / (len(quaternions) - 1)
+        )
         avg_angular_velocity = np.mean(angular_velocities, axis=1)
 
         return avg_linear_velocity, avg_angular_velocity
 
     def plot_episode_data(self):
         """Plot and save the episode data for analysis."""
-        save_path = "exp_logs/" + self.task_name +"/exp_"+ datetime.datetime.now().strftime("%Y%m%d-%H%M%S") 
+        save_path = "exp_logs/" + self.task_name + "/exp_" + datetime.datetime.now().strftime("%Y%m%d-%H%M%S")
         os.makedirs(save_path, exist_ok=True)
-        # save as csv: TODO 
-    
+        # save as csv: TODO
+
         plot_episode_data(self.episode_data, save_path)
+
     # --------------------- Callbacks ---------------------
 
     def goal_callback(self, msg: PoseStamped):
@@ -129,23 +158,24 @@ class RLTaskNode(Node):
         self.goal = np.array([msg.pose.position.x, msg.pose.position.y])  # Only store x, y
         self.get_logger().info(f"Goal updated: {self.goal.tolist()}")
 
-
     def pose_callback(self, msg: PoseStamped):
         """Update the robot's pose, quaternion, and velocities from the pose message."""
         self.robot_position = np.array([msg.pose.position.x, msg.pose.position.y, msg.pose.position.z])
-        self.robot_quat = np.array([msg.pose.orientation.w, msg.pose.orientation.x, msg.pose.orientation.y, msg.pose.orientation.z])
+        self.robot_quat = np.array(
+            [msg.pose.orientation.w, msg.pose.orientation.x, msg.pose.orientation.y, msg.pose.orientation.z]
+        )
 
         # Maintain a fixed-size buffer for timestamps and poses
         self.pose_buffer.append(msg)
         self.time_buffer.append(self.get_clock().now().nanoseconds)
-        
+
         if len(self.pose_buffer) > 30:
             self.pose_buffer.pop(0)
             self.time_buffer.pop(0)
 
         # Update robot velocities
         self.robot_vel[:3], self.robot_vel[3:] = self.derive_velocities()
-        
+
     # --------------------- Core Logic ---------------------
 
     def turn_off_thrusters(self):
@@ -154,7 +184,7 @@ class RLTaskNode(Node):
         off_all = [0] * 9  # Everything off
 
         if self.use_virtual_lab:
-            self.thruster_msg.data = [x.to_bytes(1, 'little') for x in off_thrusters]
+            self.thruster_msg.data = [x.to_bytes(1, "little") for x in off_thrusters]
         else:
             self.thruster_msg.data = off_thrusters
 
@@ -164,24 +194,25 @@ class RLTaskNode(Node):
         time.sleep(1)  # Delay before turning off air-bearing
 
         if self.use_virtual_lab:
-            self.thruster_msg.data = [x.to_bytes(1, 'little') for x in off_all]
+            self.thruster_msg.data = [x.to_bytes(1, "little") for x in off_all]
         else:
             self.thruster_msg.data = off_all
 
         self.action_pub.publish(self.thruster_msg)
         self.get_logger().info("Air-bearing turned off.")
 
-        
     def validate_task_completion(self) -> bool:
         """Check if the goal has been reached and maintained for the required steps."""
         if self.robot_position is None:
             return False
 
         # Compute distance to goal and update successful steps counter
-        self.successful_steps = self.successful_steps + 1 if torch.norm(self.goal - self.robot_position[:2]) < self.goal_tolerance else 0
+        self.successful_steps = (
+            self.successful_steps + 1 if torch.norm(self.goal - self.robot_position[:2]) < self.goal_tolerance else 0
+        )
 
         return self.successful_steps >= self.steps_to_validate
-  
+
     def load_model(self, log_dir: str):
         """Load the RL model from a given path."""
         env_params_path = f"{log_dir}/params/env.yaml"
@@ -222,13 +253,15 @@ class RLTaskNode(Node):
         lin_vel = torch.tensor(R @ self.robot_vel[:2], dtype=torch.float32)
         yaw_rate = torch.tensor(self.robot_vel[5], dtype=torch.float32)
 
-        self.state = torch.cat([
-            position_dist.unsqueeze(0),
-            torch.tensor([math.cos(target_heading_error), math.sin(target_heading_error)]),
-            lin_vel,
-            yaw_rate.unsqueeze(0),
-            self.prev_action
-        ])
+        self.state = torch.cat(
+            [
+                position_dist.unsqueeze(0),
+                torch.tensor([math.cos(target_heading_error), math.sin(target_heading_error)]),
+                lin_vel,
+                yaw_rate.unsqueeze(0),
+                self.prev_action,
+            ]
+        )
 
         return self.state
 
@@ -239,7 +272,11 @@ class RLTaskNode(Node):
             return
 
         action = self.model_inference(self.state)
-        self.thruster_msg.data = [value.to_bytes(1, byteorder='little') for value in action.int().tolist()] if self.use_virtual_lab else action.int().tolist()
+        self.thruster_msg.data = (
+            [value.to_bytes(1, byteorder="little") for value in action.int().tolist()]
+            if self.use_virtual_lab
+            else action.int().tolist()
+        )
         self.action_pub.publish(self.thruster_msg)
         self.prev_action = action[1:]
         self.current_step += 1
@@ -255,7 +292,11 @@ class RLTaskNode(Node):
         self.get_logger().info(f"Step: {self.current_step}, State: {self.state.tolist()}, Action: {action.tolist()}")
         # Check if goal is reached
         if self.validate_task_completion() or self.current_step >= self.num_steps_episode:
-            self.get_logger().info(f"Task completed in {self.current_step} steps." if self.validate_task_completion() else f"Task reached (max) {self.num_steps_episode} steps.")  
+            self.get_logger().info(
+                f"Task completed in {self.current_step} steps."
+                if self.validate_task_completion()
+                else f"Task reached (max) {self.num_steps_episode} steps."
+            )
             self.turn_off_thrusters()
             if self.save_history:
                 self.plot_episode_data()
@@ -267,7 +308,9 @@ def main(args=None):
     rclpy.init(args=args)
 
     # Example task: "go_to_position" with goal (5.0, 5.0)
-    task_node = RLTaskNode("go_to_position", goal=(5.0, 5.0), num_steps_episode=50, use_virtual_lab=False, save_history=True)
+    task_node = RLTaskNode(
+        "go_to_position", goal=(5.0, 5.0), num_steps_episode=50, use_virtual_lab=False, save_history=True
+    )
 
     try:
         rclpy.spin(task_node)

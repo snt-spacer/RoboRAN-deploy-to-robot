@@ -221,7 +221,7 @@ def main(args=None):
 
     task_node = RLTaskNode()
 
-    thread = threading.Thread(target=rclpy.spin, args=(task_node, ), daemon=True)
+    thread = threading.Thread(target=rclpy.spin, args=(task_node,), daemon=True)
     thread.start()
 
     task_node.run()

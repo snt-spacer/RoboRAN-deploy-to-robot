@@ -1,8 +1,9 @@
-from .import Registerable,BaseInferenceRunner
+from . import Registerable, BaseInferenceRunner
 
 
 from gymnasium import spaces
 import torch
+
 
 class RandomInferenceRunner(Registerable, BaseInferenceRunner):
     def __init__(
@@ -16,7 +17,7 @@ class RandomInferenceRunner(Registerable, BaseInferenceRunner):
         Args:
             action_space: The action space of the agent.
             device: The device to run the inference on."""
-        
+
         # Set the device & mixed precision
         if device == "auto":
             self._device = "cuda:0" if torch.cuda.is_available() else "cpu"
@@ -53,7 +54,6 @@ class RandomInferenceRunner(Registerable, BaseInferenceRunner):
         Returns:
             The actions to take."""
 
-        
         return torch.tensor(self._action_space.sample(), device=self._device).unsqueeze(0)
 
     def build(self) -> None:

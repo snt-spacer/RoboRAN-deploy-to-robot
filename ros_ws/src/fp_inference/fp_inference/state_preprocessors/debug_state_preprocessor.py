@@ -26,7 +26,6 @@ class DebugStatePreProcessor(Registerable, BaseStatePreProcessor):
         self.ROS_CALLBACK = self.update_state_ROS
         self.ROS_QUEUE_SIZE = 1
 
-
     def update_state_ROS(self, data: PoseStamped, **kwargs) -> None:
         """Update the state processor with a new ROS message. If the state processor is primed, update the state.
         When primed, the state can be accessed through the state variables."""
