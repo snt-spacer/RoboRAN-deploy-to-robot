@@ -34,3 +34,4 @@ class InferenceRunnerFactory:
 
 
 from .skrl_inference import SKRLInferenceRunner
+from .random_inference_runner import RandomInferenceRunner
