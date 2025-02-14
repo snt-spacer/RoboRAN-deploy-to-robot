@@ -1,5 +1,6 @@
 from .base_robot_interface import BaseRobotInterface
 
+from gymnasium import spaces
 from std_msgs.msg import ByteMultiArray
 import torch
 import copy
@@ -13,6 +14,9 @@ class FloatingPlatformInterface(BaseRobotInterface):
         self.commands.data = [0] * 9  # Everything off
 
         self.ROS_ACTION_TYPE = ByteMultiArray
+
+        # Action space
+        self._action_space = spaces.MultiDiscrete([2] * 8)
 
     @property
     def kill_action(self) -> ByteMultiArray:
