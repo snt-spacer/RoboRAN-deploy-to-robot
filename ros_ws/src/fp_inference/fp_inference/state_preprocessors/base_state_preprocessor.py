@@ -11,7 +11,7 @@ class BaseStatePreProcessor:
     All the operations are done on the GPU to ensure mimum CPU-GPU data transfer.
     """
 
-    def __init__(self, buffer_size: int = 30, device: str = "auto", **kwargs):
+    def __init__(self, buffer_size: int = 30, device: str = "auto", **kwargs) -> None:
         """Initialize the state processor with a buffer size and device.
 
         Args:
@@ -59,7 +59,11 @@ class BaseStatePreProcessor:
         # Log hook
         self.build_logs()
 
-    def build_logs(self):
+    def build_logs(self) -> None:
+        """Build the logs for the state processor. In this case, we log the position, quaternion, heading, linear velocities,
+        angular velocities, ROS time, and elapsed time. Also build the log specs for the state variables.
+        Logs specs are used to define the units of the state variables."""
+
         # Log hook
         self._logs = {}
         self._logs["position_world"] = torch.zeros((1, 3), device=self._device)
@@ -82,7 +86,9 @@ class BaseStatePreProcessor:
         self._logs_specs["ros_time"] = [".s"]
         self._logs_specs["elapsed_time"] = [".s"]
 
-    def update_logs(self):
+    def update_logs(self) -> None:
+        """Function used to update the logs for the state processor."""
+
         self._logs["position_world"] = self._position
         self._logs["quaternion_world"] = self._quaternion
         self._logs["heading_world"] = self._heading
@@ -97,6 +103,8 @@ class BaseStatePreProcessor:
 
     @property
     def logs(self):
+        """Return the logs for the state processor."""
+
         if self._step_logs != self._step:
             self._step_logs = copy.copy(self._step)
             self.update_logs()
@@ -104,10 +112,14 @@ class BaseStatePreProcessor:
 
     @property
     def logs_names(self):
+        """Return the logs names for the state processor."""
+
         return self._logs.keys()
 
     @property
     def logs_specs(self):
+        """Return the logs specifications for the state processor."""
+
         return self._logs_specs
 
     @property
@@ -213,6 +225,8 @@ class BaseStatePreProcessor:
         return self._angular_velocities_body
 
     def get_logs(self):
+        """Hook used by the logger to get the logs for the state processor."""
+
         return self.logs
 
     @staticmethod
@@ -343,6 +357,7 @@ class BaseStatePreProcessor:
 
     def reset(self) -> None:
         """Reset the state processor to its initial state."""
+
         self.build_logs()
         self._last_time = None
         self.is_primed = False

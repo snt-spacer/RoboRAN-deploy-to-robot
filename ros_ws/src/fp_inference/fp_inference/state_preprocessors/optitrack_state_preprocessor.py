@@ -107,13 +107,15 @@ class OptitrackStatePreProcessor(Registerable, BaseStatePreProcessor):
             [pose.pose.orientation.w, pose.pose.orientation.x, pose.pose.orientation.y, pose.pose.orientation.z],
             device=self._device,
         )
-        #time = torch.tensor(pose.header.stamp.nanosec, device=self._device)
+        # time = torch.tensor(pose.header.stamp.nanosec, device=self._device)
         self._last_time = copy.copy(self._time)
         self._time = pose.header.stamp.sec + pose.header.stamp.nanosec * 1e-9
         # Update buffers
         self._position_buffer = self.append_right_tensor_queue(self._position_buffer, position)
         self._quaternion_buffer = self.append_right_tensor_queue(self._quaternion_buffer, quaternion)
-        self._time_buffer = self.append_right_tensor_queue(self._time_buffer, torch.tensor(copy.copy(self._time), device=self._device, dtype=torch.float64))
+        self._time_buffer = self.append_right_tensor_queue(
+            self._time_buffer, torch.tensor(copy.copy(self._time), device=self._device, dtype=torch.float64)
+        )
         # Update the step count and priming status
         self._step += 1
         self._is_primed = self._step >= self._buffer_size
