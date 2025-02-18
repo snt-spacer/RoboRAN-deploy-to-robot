@@ -105,16 +105,16 @@ class GoToPoseFormater(Registerable, BaseFormater):
             position (PoseStamped): The goal pose."""
 
         if pose is not None:
+            print("Received new goal")
+            print(f"Going to position xy: {pose.pose.position.x, pose.pose.position.y}, with orientation xyzw: {pose.pose.orientation.x, pose.pose.orientation.y, pose.pose.orientation.z, pose.pose.orientation.w}")
+
             self._target_position[0, 0] = pose.pose.position.x
             self._target_position[0, 1] = pose.pose.position.y
             self._target_heading[0, 0] = torch.atan2(
-                2
-                * (
-                    pose.pose.orientation.w * pose.pose.orientation.z
-                    + pose.pose.orientation.x * pose.pose.orientation.y
-                ),
-                1 - 2 * (pose.pose.orientation.y**2 + pose.pose.orientation.z**2),
-            )
+                torch.tensor(2* (pose.pose.orientation.w * pose.pose.orientation.z
+                                 + pose.pose.orientation.x * pose.pose.orientation.y)
+                ), torch.tensor(1 - 2 * (pose.pose.orientation.y**2 
+                                         + pose.pose.orientation.z**2)),)
             # A goal has been received the task is live
             self._task_is_live = True
             # Reset the number of steps to 0 when a new goal is received

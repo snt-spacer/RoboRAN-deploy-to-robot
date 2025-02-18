@@ -34,3 +34,7 @@ install/
 log/
 log/
 models/
+
+.vscode/
+
+logs/

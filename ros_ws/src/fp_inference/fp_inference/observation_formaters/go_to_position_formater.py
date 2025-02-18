@@ -30,7 +30,7 @@ class GoToPositionFormater(Registerable, BaseFormater):
         # General parameters
         self.ROS_TYPE = PointStamped
 
-        self._task_data = torch.zeros((1, 8), device=self._device)
+        self._task_data = torch.zeros((1, 6), device=self._device)
         self._target_position = torch.zeros((1, 2), device=self._device)
 
     def build_logs(self):
@@ -69,8 +69,7 @@ class GoToPositionFormater(Registerable, BaseFormater):
             self._target_position[:, 1] - self._state_preprocessor.position[:, 1],
             self._target_position[:, 0] - self._state_preprocessor.position[:, 0],
         )
-        # print(target_heading_w.shape)
-        # print(self._state_preprocessor.heading.shape)
+
         self.target_heading_error = torch.atan2(
             torch.sin(target_heading_w - self._state_preprocessor.heading),
             torch.cos(target_heading_w - self._state_preprocessor.heading),
@@ -81,7 +80,7 @@ class GoToPositionFormater(Registerable, BaseFormater):
         self._task_data[:, 2] = torch.sin(self.target_heading_error)
         self._task_data[:, 3:5] = self._state_preprocessor.linear_velocities_body[:, :2]
         self._task_data[:, 5] = self._state_preprocessor.angular_velocities_body[:, -1]
-
+        print(self._task_data)
         self._observation = torch.cat((self._task_data, actions), dim=1)
         self.check_task_completion()
 

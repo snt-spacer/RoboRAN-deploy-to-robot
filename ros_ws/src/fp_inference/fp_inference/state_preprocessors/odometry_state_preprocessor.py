@@ -105,11 +105,11 @@ class OdometryStatePreProcessor(Registerable, BaseStatePreProcessor):
             ],
             device=self._device,
         )
-        self._linear_velocities_body = torch.tensor(
+        self._linear_velocities_body[:,:] = torch.tensor(
             [odometry.twist.twist.linear.x, odometry.twist.twist.linear.y, odometry.twist.twist.linear.z],
             device=self._device,
         )
-        self._angular_velocities_body = torch.tensor(
+        self._angular_velocities_body[:,:] = - torch.tensor(
             [odometry.twist.twist.angular.x, odometry.twist.twist.angular.y, odometry.twist.twist.angular.z],
             device=self._device,
         )
