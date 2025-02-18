@@ -39,6 +39,7 @@ class VirtualFloatingPlatformInterface(Registerable, BaseRobotInterface):
         # Actions are expected to be either 0 or 1
         super().cast_actions(actions)
         # Ensure actions are between 0 and 1
+        print(actions)
         actions = torch.clamp(actions, 0, 1)
         # Store the actions
         self._last_actions = copy.copy(actions)

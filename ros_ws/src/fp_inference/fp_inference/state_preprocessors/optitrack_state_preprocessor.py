@@ -5,6 +5,8 @@ import copy
 from .base_state_preprocessor import BaseStatePreProcessor
 from . import Registerable
 
+import rclpy
+
 
 class OptitrackStatePreProcessor(Registerable, BaseStatePreProcessor):
     """A class to process state information from a robot. The state processor maintains a buffer of the robot's position,
@@ -107,9 +109,13 @@ class OptitrackStatePreProcessor(Registerable, BaseStatePreProcessor):
             [pose.pose.orientation.w, pose.pose.orientation.x, pose.pose.orientation.y, pose.pose.orientation.z],
             device=self._device,
         )
-        #time = torch.tensor(pose.header.stamp.nanosec, device=self._device)
+
         self._last_time = copy.copy(self._time)
-        self._time = pose.header.stamp.sec + pose.header.stamp.nanosec * 1e-9
+        if pose.header.stamp.sec == 0:
+            clock = rclpy.clock.Clock().now().to_msg()
+            self._time = clock.sec + clock.nanosec * 1e-9
+        else:
+            self._time = pose.header.stamp.sec + pose.header.stamp.nanosec * 1e-9    
         # Update buffers
         self._position_buffer = self.append_right_tensor_queue(self._position_buffer, position)
         self._quaternion_buffer = self.append_right_tensor_queue(self._quaternion_buffer, quaternion)

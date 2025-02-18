@@ -52,16 +52,18 @@ class SKRLInferenceRunner(Registerable):
         self._device_type = torch.device(self._device).type
         self._mixed_precision = use_mix_precision
 
+        self._action_space = action_space
+
         # Checkpoint modules to restore the weights of the models
         self.checkpoint_modules = {}
 
         # RNN initial state
         self._rnn_states = {"rnn": []}
 
+        self.load_model(logdir, action_space, checkpoint_path)
+
         # set random seed
         set_seed(self._cfg.get("seed"))
-
-        self.load_model(logdir, action_space, checkpoint_path)
 
     def load_model(
         self,
@@ -117,6 +119,7 @@ class SKRLInferenceRunner(Registerable):
         if type(modules) is dict:
             for name, data in modules.items():
                 module = self.checkpoint_modules.get(name)
+                print("module: ", module)
                 if module is not None:
                     if hasattr(module, "load_state_dict"):
                         module.load_state_dict(data)
@@ -262,7 +265,7 @@ class SKRLInferenceRunner(Registerable):
             resume_path: The path to the checkpoint to restore the model from."""
 
         # Generate the models
-        self._models = generate_models(copy.deepcopy(self._env), copy.deepcopy(self._cfg), self._device)
+        self._models = generate_models(copy.deepcopy(self._env), copy.deepcopy(self._cfg), self._action_space, self._device)
         # Generate the preprocessor
         self._state_preprocessor = get_state_preprocessor(
             copy.deepcopy(self._env), copy.deepcopy(self._cfg), self._device

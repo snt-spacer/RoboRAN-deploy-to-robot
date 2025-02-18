@@ -14,13 +14,13 @@ def generate_launch_description():
                 parameters=[
                     {
                         "task_name": "GoToPosition",
-                        "state_preprocessor_name": "Optitrack",
+                        "state_preprocessor_name": "Odometry",
                         "robot_interface_name": "VirtualFloatingPlatform",
                         "inference_runner_name": "SKRL",
                         "enable_logging": True,
                         "device": "cuda:0",
                         "max_steps": 100,
-                        "dt": 1 / 10.0,
+                        "dt": 1 / 15.0,
                         # "nn_log_dir": "/RANS_DeployToRobot/models/skrl/Single/2025-02-17_09-49-57_ppo_torch_FloatingPlatform-GoToPosition",
                         "nn_log_dir": "/RANS_DeployToRobot/models/skrl/Single/2025-02-17_10-55-30_ppo-discrete_torch_FloatingPlatform-GoToPosition",
                         "nn_checkpoint_path": "None",
@@ -29,7 +29,7 @@ def generate_launch_description():
                     }
                 ],
                 remappings=[
-                    ("state_preprocessor_input", "/omniFPS/Robots/FloatingPlatform/PoseStamped"),
+                    ("state_preprocessor_input", "/omniFPS/Robots/FloatingPlatform/odom"),
                     ("robot_interface_commands", "/omniFPS/Robots/FloatingPlatform/thrusters/input"),
                 ],
             )
