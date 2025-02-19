@@ -28,7 +28,8 @@ def generate_launch_description():
                     }
                 ],
                 remappings=[
-                    ("state_preprocessor_input", "/vrpn_client_node/FP_exp_RL/PoseStamped")
+                    ("state_preprocessor_input", "/vrpn_client_node/FP_exp_RL/PoseStamped"),
+                    ("robot_interface_commands", "/spacer_floating_platform/valves/input"),
                 ]
             )
         ]
