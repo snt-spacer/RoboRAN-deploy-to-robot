@@ -1,6 +1,6 @@
 from typing import Dict
-from gymnasium import spaces as spaces_in
-from gym import spaces
+import gymnasium
+import gym
 import numpy as np
 import torch
 import yaml
@@ -9,32 +9,6 @@ from rl_games.algos_torch.players import (
     BasicPpoPlayerContinuous,
     BasicPpoPlayerDiscrete,
 )
-
-class BaseInferenceRunner:
-    def __init__(
-        self,
-        logdir: str | None = None,
-        action_space: spaces.Space | None = None,
-        checkpoint_path: str | None = None,
-        device: str = "auto",
-        use_mix_precision: bool = False,
-        *args,
-        **kwargs,
-    ) -> None:
-        raise NotImplementedError("Init method not implemented")
-
-    def act(self, states: torch.Tensor, *args, **kwargs) -> torch.Tensor:
-        raise NotImplementedError("Act method not implemented")
-
-    def load_model(self, path: str) -> None:
-        raise NotImplementedError("Load method not implemented")
-
-    def build(self) -> None:
-        raise NotImplementedError("Build method not implemented")
-
-    def reset(self) -> None:
-        raise NotImplementedError("Reset method not implemented")
-
 
 class RLGamesInferenceRunner(BaseInferenceRunner):
     """
@@ -58,10 +32,31 @@ class RLGamesInferenceRunner(BaseInferenceRunner):
             self._device = device
         self._device_type = torch.device(self._device).type
         self._mixed_precision = use_mix_precision
-        self._observation_space = observation_space
-        self._action_space = action_space
+        self._observation_space = self._convert_observation_space(observation_space)
+        self._action_space = self._convert_action_space(action_space)
 
         self.load_model(logdir, checkpoint_path)
+
+    def _convert_action_space(self, action_space: gymnasium.spaces.Space) -> gym.spaces.Space:
+        if isinstance(action_space, gymnasium.spaces.Discrete):
+            return gym.spaces.Discrete(action_space.n)
+        elif isinstance(action_space, gymnasium.spaces.Tuple):
+            return gym.spaces.Tuple([gym.spaces.Discrete(n.n) for n in action_space.spaces])
+        elif isinstance(action_space, gymnasium.spaces.Box):
+            return gym.spaces.Box(-self._clip_actions, self._clip_actions, action_space.shape)
+        elif isinstance(action_space, gymnasium.spaces.MultiDiscrete):
+            return gym.spaces.Tuple([gym.spaces.Discrete(n) for n in action_space.nvec])
+        
+    def _convert_observation_space(self, observation_space: gymnasium.spaces.Space) -> gym.spaces.Space:
+        if not isinstance(observation_space, gymnasium.spaces.Box):
+            raise NotImplementedError(
+                f"The RL-Games wrapper does not currently support observation space: '{type(observation_space)}'."
+                f" If you need to support this, please modify the wrapper: {self.__class__.__name__},"
+                " and if you are nice, please send a merge-request."
+            )
+        # note: maybe should check if we are a sub-set of the actual space. don't do it right now since
+        #   in ManagerBasedRLEnv we are setting action space as (-inf, inf).
+        return gym.spaces.Box(None, None, observation_space.shape)
 
 
     def load_model(
@@ -90,13 +85,13 @@ class RLGamesInferenceRunner(BaseInferenceRunner):
         """
         Build the RLGames model."""
 
-        if isinstance(action_space, spaces_in.Discrete) or isinstance(action_space, spaces_in.MultiDiscrete):
+        if isinstance(self._action_space, gym.spaces.Tuple):
             self.player = BasicPpoPlayerDiscrete(
-                self._cfg, obs_space, action_space, clip_actions=False, deterministic=True
+                self._cfg, self._observation_space, self._action_space, clip_actions=False, deterministic=True
             )
         else:
             self.player = BasicPpoPlayerContinuous(
-                self._cfg, obs_space, action_space, clip_actions=False, deterministic=True
+                self._cfg, self._observation_space, self._action_space, clip_actions=False, deterministic=True
             )
 
     def load_weigths(self, model_name: str) -> None:
