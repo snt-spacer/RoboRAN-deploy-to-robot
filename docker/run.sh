@@ -6,4 +6,5 @@ docker run --name rans-ros-deploy-container -it --gpus all -e "ACCEPT_EULA=Y" --
     -e DISPLAY \
     -e "PRIVACY_CONSENT=Y" \
     -v ${PWD}/models:/RANS_DeployToRobot/models \
-    rans-ros-deploy-L4T:latest
+    -v ${PWD}/ros_experiments_logs:/RANS_DeployToRobot/ros_experiments_logs \
+    rans-ros-deploy:latest

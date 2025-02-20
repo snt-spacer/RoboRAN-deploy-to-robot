@@ -100,8 +100,8 @@ class RLTaskNode(Node):
         self.inference_runner = InferenceRunnerFactory.create(
             self._inference_runner_name,
             logdir=self._nn_log_dir,
-            checkpoint_path=self._nn_checkpoint_path,
             action_space=self.robot_interface.action_space,
+            checkpoint_path=self._nn_checkpoint_path,
             device=self._device,
         )
 
