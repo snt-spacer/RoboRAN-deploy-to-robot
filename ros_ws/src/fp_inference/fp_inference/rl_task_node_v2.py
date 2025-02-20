@@ -189,6 +189,7 @@ class RLTaskNode(Node):
                 self.get_logger().info("Task completed!")
                 # Reset the robot interface
                 self.robot_interface.reset()
+                self.action_pub.publish(self.robot_interface.pre_kill_action)
                 # Send immobilization command
                 self.action_pub.publish(self.robot_interface.kill_action)
                 # Task is completed, save the logs.

@@ -91,6 +91,10 @@ class BaseRobotInterface:
         return self._action_space
 
     @property
+    def pre_kill_action(self) -> Any:
+        raise NotImplementedError("Pre-kill action not implemented")
+    
+    @property
     def kill_action(self) -> Any:
         raise NotImplementedError("Kill action not implemented")
 

@@ -35,11 +35,18 @@ class FloatingPlatformInterface(Registerable, BaseRobotInterface):
 
     @property
     def kill_action(self) -> Int16MultiArray:
+        pre_kill_command = Int16MultiArray()
+        actions = [1] + [0] * 8  # Leave bearigs on, thrusters off
+        pre_kill_command.data = actions
+        return pre_kill_command
+
+    @property
+    def pre_kill_action(self) -> Int16MultiArray:
         kill_command = Int16MultiArray()
         actions = [0] * 9  # Everything off
         kill_command.data = actions
         return kill_command
-
+    
     def build_logs(self):
         """Build the logs for the robot interface. In this case, we log the thrusters firing."""
 
