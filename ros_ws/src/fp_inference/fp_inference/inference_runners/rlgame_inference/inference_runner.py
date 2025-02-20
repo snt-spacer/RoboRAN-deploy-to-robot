@@ -1,24 +1,26 @@
-from typing import Dict
 import gymnasium
-import gym
+import gym.spaces
 import numpy as np
 import torch
 import yaml
 
-from rl_games.algos_torch.players import (
+from fp_inference.inference_runners import BaseInferenceRunner, Registerable
+
+from .inference_helpers import (
     BasicPpoPlayerContinuous,
     BasicPpoPlayerDiscrete,
 )
 
-class RLGamesInferenceRunner(BaseInferenceRunner):
+
+class RLGamesInferenceRunner(BaseInferenceRunner, Registerable):
     """
     This class implements a wrapper for the RLGames model."""
 
     def __init__(
         self,
         logdir: str | None = None,
-        observation_space: spaces_in.Space | None = None,
-        action_space: spaces_in.Space | None = None,
+        observation_space: gymnasium.spaces.Space | None = None,
+        action_space: gymnasium.spaces.Space | None = None,
         checkpoint_path: str | None = None,
         device: str = "auto",
         use_mix_precision: bool = False,
@@ -56,7 +58,7 @@ class RLGamesInferenceRunner(BaseInferenceRunner):
             )
         # note: maybe should check if we are a sub-set of the actual space. don't do it right now since
         #   in ManagerBasedRLEnv we are setting action space as (-inf, inf).
-        return gym.spaces.Box(None, None, observation_space.shape)
+        return gym.spaces.Box(-np.inf, np.inf, observation_space.shape)
 
 
     def load_model(
@@ -101,9 +103,9 @@ class RLGamesInferenceRunner(BaseInferenceRunner):
         Args:
             model_name (str): A string containing the path to the checkpoint of an RLGames model matching the configuation file.
         """
+        
         self.player.restore(model_name)
 
-    def getAction(self, state, is_deterministic=True, **kwargs) -> np.ndarray:
-
+    def act(self, state, is_deterministic=True, **kwargs) -> torch.Tensor:
         actions = (self.player.get_action(state, is_deterministic=is_deterministic))
-        return actions
+        return actions.unsqueeze(0)

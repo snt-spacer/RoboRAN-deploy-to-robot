@@ -5,6 +5,8 @@ from fp_inference.state_preprocessors import BaseStatePreProcessor
 from geometry_msgs.msg import PoseStamped
 from dataclasses import dataclass
 from typing import Any
+import numpy as np
+import gymnasium
 import torch
 
 
@@ -23,6 +25,7 @@ class GoToPoseFormater(Registerable, BaseFormater):
         state_preprocessor: BaseStatePreProcessor | None = None,
         device: str = "cuda",
         max_steps: int = 500,
+        num_actions: int = 2,
         task_cfg: GoToPoseTaskCfg = GoToPoseTaskCfg(),
         **kwargs,
     ) -> None:
@@ -31,7 +34,10 @@ class GoToPoseFormater(Registerable, BaseFormater):
         # General parameters
         self.ROS_TYPE = PoseStamped
 
-        self._task_data = torch.zeros((1, 6), device=self._device)
+        # Task parameters
+        self._observation_space = gymnasium.spaces.Box(-np.inf, np.inf, (6 + num_actions,))
+
+        self._task_data = torch.zeros((1, 8), device=self._device)
         self._target_position = torch.zeros((1, 2), device=self._device)
         self._target_heading = torch.zeros((1, 1), device=self._device)
 

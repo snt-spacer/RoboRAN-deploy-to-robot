@@ -5,6 +5,8 @@ from fp_inference.state_preprocessors import BaseStatePreProcessor
 from geometry_msgs.msg import PointStamped
 from dataclasses import dataclass
 from typing import Any
+import numpy as np
+import gymnasium
 import torch
 
 
@@ -23,12 +25,16 @@ class GoToPositionFormater(Registerable, BaseFormater):
         device: str = "cuda",
         max_steps: int = 500,
         task_cfg: GoToPositionTaskCfg = GoToPositionTaskCfg(),
+        num_actions: int = 2,
         **kwargs,
     ) -> None:
         super().__init__(state_preprocessor, device, max_steps, task_cfg)
 
         # General parameters
         self.ROS_TYPE = PointStamped
+
+        # Task parameters
+        self._observation_space = gymnasium.spaces.Box(-np.inf, np.inf, (6 + num_actions,))
 
         self._task_data = torch.zeros((1, 6), device=self._device)
         self._target_position = torch.zeros((1, 2), device=self._device)
@@ -79,7 +85,7 @@ class GoToPositionFormater(Registerable, BaseFormater):
         self._task_data[:, 1] = torch.cos(self.target_heading_error)
         self._task_data[:, 2] = torch.sin(self.target_heading_error)
         self._task_data[:, 3:5] = self._state_preprocessor.linear_velocities_body[:, :2]
-        self._task_data[:, 5] = self._state_preprocessor.angular_velocities_body[:, -1]
+        self._task_data[:, 5] = -self._state_preprocessor.angular_velocities_body[:, -1]
         print(self._task_data)
         self._observation = torch.cat((self._task_data, actions), dim=1)
         self.check_task_completion()

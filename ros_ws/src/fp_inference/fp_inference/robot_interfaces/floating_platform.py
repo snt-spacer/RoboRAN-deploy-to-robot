@@ -31,6 +31,7 @@ class FloatingPlatformInterface(Registerable, BaseRobotInterface):
 
         # Action space
         self._action_space = spaces.MultiDiscrete([2] * 8)
+        self._num_actions = 8
 
     @property
     def kill_action(self) -> Int16MultiArray:

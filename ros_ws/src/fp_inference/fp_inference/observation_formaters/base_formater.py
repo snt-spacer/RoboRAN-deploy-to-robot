@@ -1,5 +1,6 @@
 from fp_inference.state_preprocessors import BaseStatePreProcessor
 from dataclasses import dataclass
+import gymnasium
 import torch
 import copy
 
@@ -37,6 +38,7 @@ class BaseFormater:
         self._task_completed = False
         self._task_is_live = False
         self._observation = None
+        self._observation_space = None
 
         # Lazy updates
         self._step = 0
@@ -53,6 +55,10 @@ class BaseFormater:
 
     def update_logs(self):
         raise NotImplementedError("Update logs method not implemented")
+
+    @property
+    def observation_space(self) -> gymnasium.spaces.Space:
+        return self._observation_space
 
     @property
     def task_is_live(self):

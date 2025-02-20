@@ -24,6 +24,7 @@ class BaseRobotInterface:
 
         # Action space
         self._action_space: spaces = None
+        self._num_actions: int = 0
 
         # Lazy updates of state variables
         self._step_logs: int = 0
@@ -46,6 +47,12 @@ class BaseRobotInterface:
         """Function used to update the logs for the robot interface."""
 
         self._logs["actions"] = self.last_actions
+
+    @property
+    def num_actions(self) -> int:
+        """Return the number of actions for the robot interface."""
+
+        return self._num_actions
 
     @property
     def logs(self) -> dict[str, torch.Tensor]:

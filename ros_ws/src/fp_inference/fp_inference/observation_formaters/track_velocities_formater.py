@@ -3,7 +3,9 @@ from . import BaseFormater, BaseFormaterCfg
 from fp_inference.state_preprocessors import BaseStatePreProcessor
 
 from geometry_msgs.msg import TwistStamped
-from dataclasses import dataclas
+from dataclasses import dataclass
+import numpy as np
+import gymnasium
 import torch
 
 @dataclass
@@ -20,12 +22,16 @@ class TrackVelocitiesTask(Registerable, BaseFormater):
         state_preprocessor: BaseStatePreProcessor | None = None,
         device: str = "cuda",
         max_steps: int = 500,
+        num_actions: int = 2,
         task_cfg: TrackVelocitiesTaskCfg = TrackVelocitiesTaskCfg(),
         **kwargs,
     ) -> None:
         super().__init__(state_preprocessor, device, max_steps, task_cfg)
 
         self.ROS_TYPE = TwistStamped
+
+        # Task parameters
+        self._observation_space = gymnasium.spaces.Box(-np.inf, np.inf, (8 + num_actions,))
 
         self._task_data = torch.zeros((1, 8), device=self._device)
         self._target_lin_vel = torch.zeros((1, 1), device=self._device)
