@@ -36,3 +36,4 @@ class InferenceRunnerFactory:
 from .rlgame_inference import RLGamesInferenceRunner  # noqa: F401, E402, F403
 from .skrl_inference import SKRLInferenceRunner  # noqa: F401, E402, F403
 from .random_inference_runner import RandomInferenceRunner  # noqa: F401, E402, F403
+from .onnx_inference_runner import ONNXInferenceRunner  # noqa: F401, E402, F403
