@@ -25,7 +25,7 @@ def generate_launch_description():
                         "nn_log_dir": "/RANS_DeployToRobot/models/skrl/Single/2025-02-17_10-55-30_ppo-discrete_torch_FloatingPlatform-GoToPosition",
                         "nn_checkpoint_path": "None",
                         "terminate_on_completion": True,
-                        "logs_save_path": "./ros_data_logs",
+                        "logs_save_path": "/RANS_DeployToRobot/ros_experiments_logs",
                     }
                 ],
                 remappings=[
