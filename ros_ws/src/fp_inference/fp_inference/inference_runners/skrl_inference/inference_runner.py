@@ -30,6 +30,7 @@ class SKRLInferenceRunner(Registerable):
     def __init__(
         self,
         logdir: str | None = None,
+        observation_space: spaces.Space | None = None,
         action_space: spaces.Space | None = None,
         checkpoint_path: str | None = None,
         device: str = "auto",
@@ -39,6 +40,7 @@ class SKRLInferenceRunner(Registerable):
 
         Args:
             logdir: The directory where the model is configuration and weights are stored.
+            observation_space: The observation space of the agent.
             action_space: The action space of the agent.
             checkpoint_path: The path to the checkpoint to restore the model from.
             device: The device to run the inference on.
@@ -52,6 +54,7 @@ class SKRLInferenceRunner(Registerable):
         self._device_type = torch.device(self._device).type
         self._mixed_precision = use_mix_precision
 
+        self._observation_space = observation_space
         self._action_space = action_space
 
         # Checkpoint modules to restore the weights of the models
@@ -80,9 +83,12 @@ class SKRLInferenceRunner(Registerable):
             checkpoint_path: The path to the checkpoint to restore the model from."""
 
         # Get model and agent configuration
+        print(log_dir)
         env_params_path = f"{log_dir}/params/env.yaml"
+        print(env_params_path)
         with open(env_params_path) as f:
             env_cfg = yaml.load(f, Loader=yaml.FullLoader)
+        print(env_cfg)
 
         agent_params_path = f"{log_dir}/params/agent.yaml"
         with open(agent_params_path) as f:

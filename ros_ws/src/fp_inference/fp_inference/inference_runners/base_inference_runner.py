@@ -6,6 +6,7 @@ class BaseInferenceRunner:
     def __init__(
         self,
         logdir: str | None = None,
+        observation_space: spaces.Space | None = None,
         action_space: spaces.Space | None = None,
         checkpoint_path: str | None = None,
         device: str = "auto",

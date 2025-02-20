@@ -162,7 +162,7 @@ def generate_models(env: dict[str, Any], cfg: dict[str, Any], action_space: gym.
     """
 
     # Consider only single agent envs.
-    state_spaces = env["state_space"]
+    print(env)
     observation_spaces = gym.spaces.Box(low=-np.inf, high=np.inf, shape=(env["observation_space"],), dtype=np.float32)
     action_spaces = action_space
 
