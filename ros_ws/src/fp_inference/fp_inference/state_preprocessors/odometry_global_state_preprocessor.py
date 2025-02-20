@@ -6,7 +6,7 @@ from .base_state_preprocessor import BaseStatePreProcessor
 from . import Registerable
 
 
-class OdometryStatePreProcessor(Registerable, BaseStatePreProcessor):
+class OdometryGlobalStatePreProcessor(Registerable, BaseStatePreProcessor):
     """A class to process state information from a robot. The state processor maintains a buffer of the robot's position,
     quaternion, and time. The state processor can compute the heading, rotation matrix, linear velocities in the world frame,
     and linear velocities in the body frame. The state processor is primed after a certain number of steps, after which the
@@ -28,51 +28,6 @@ class OdometryStatePreProcessor(Registerable, BaseStatePreProcessor):
 
         # Always primed, no waiting for buffer
         self._is_primed = True
-
-    @property
-    def linear_velocities_world(self) -> torch.Tensor | None:
-        """Return the linear velocities in the world frame. If the velocities are not available, return None.
-
-        Returns:
-            torch.Tensor[N, 3] | None: The linear velocities in the world frame if available, otherwise None."""
-
-        if (self.linear_velocities_world is not None) and (self._step_linear_velocity_body != self._step):
-            self.get_linear_velocities_world()
-            # Update the step count for lazy updates
-            self._step_linear_velocity_body = copy.copy(self._step)
-        return self._linear_velocities_world
-
-    @property
-    def angular_velocities_world(self) -> torch.Tensor | None:
-        """Return the angular velocities in the world frame. If the velocities are not available, return None.
-
-        Returns:
-            torch.Tensor[N, 3] | None: The angular velocities in the world frame if available, otherwise None."""
-
-        if (self.angular_velocities_world is not None) and (self._step_angular_velocity_body != self._step):
-            self._angular_velocities_world = self._angular_velocities_body
-            # Update the step count for lazy updates
-            self._step_angular_velocity_body = copy.copy(self._step)
-        return self._angular_velocities_world
-
-    @property
-    def linear_velocities_body(self) -> torch.Tensor | None:
-        """Return the linear velocities in the body frame. If the velocities are not available, return None.
-
-        Returns:
-            torch.Tensor[N, 3] | None: The linear velocities in the body frame if available, otherwise None."""
-
-        return self._linear_velocities_body
-
-    @property
-    def angular_velocities_body(self) -> torch.Tensor | None:
-        """Return the angular velocities in the body frame. If the velocities are not available, return None.
-        Note: The angular velocities in the body frame are the same as the angular velocities in the world frame.
-
-        Returns:
-            torch.Tensor[N, 3] | None: The angular velocities in the body frame if available, otherwise None."""
-
-        return self._angular_velocities_body
 
     def get_linear_velocities_world(self) -> torch.Tensor:
         """Compute the linear velocities in the world frame from the linear velocities in the body frame."""
@@ -105,11 +60,11 @@ class OdometryStatePreProcessor(Registerable, BaseStatePreProcessor):
             ],
             device=self._device,
         )
-        self._linear_velocities_body[:,:] = torch.tensor(
+        self._linear_velocities_world[:,:] = torch.tensor(
             [odometry.twist.twist.linear.x, odometry.twist.twist.linear.y, odometry.twist.twist.linear.z],
             device=self._device,
         )
-        self._angular_velocities_body[:,:] = torch.tensor(
+        self._angular_velocities_world[:,:] = torch.tensor(
             [odometry.twist.twist.angular.x, odometry.twist.twist.angular.y, odometry.twist.twist.angular.z],
             device=self._device,
         )
