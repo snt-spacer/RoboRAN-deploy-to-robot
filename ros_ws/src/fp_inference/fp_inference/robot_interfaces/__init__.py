@@ -35,3 +35,5 @@ class RobotInterfaceFactory:
 
 from .virtual_floating_platform import VirtualFloatingPlatformInterface  # noqa: F401, E402, F403
 from .floating_platform import FloatingPlatformInterface  # noqa: F401, E402, F403
+from .kingfisher import KingfisherInterface  # noqa: F401, E402, F403
+from .turtlebot import TurtlebotInterface  # noqa: F401, E402, F403
