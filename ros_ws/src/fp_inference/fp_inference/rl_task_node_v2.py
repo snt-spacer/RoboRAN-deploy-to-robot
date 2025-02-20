@@ -15,6 +15,7 @@ from .utils import Logger
 
 from rcl_interfaces.msg import ParameterDescriptor
 
+from rclpy.qos import QoSProfile, QoSReliabilityPolicy, QoSHistoryPolicy
 
 class RLTaskNode(Node):
     def __init__(self):
@@ -112,11 +113,13 @@ class RLTaskNode(Node):
 
         self.get_logger().info("Opening ROS2 interfaces...")
         # ROS2 Subscriptions
+        qos_profile = QoSProfile(reliability=QoSReliabilityPolicy.BEST_EFFORT, history=QoSHistoryPolicy.KEEP_LAST, depth=10)
         self.create_subscription(
             self.state_preprocessor.ROS_TYPE,
             "state_preprocessor_input",
             self.state_preprocessor.ROS_CALLBACK,
-            self.state_preprocessor.ROS_QUEUE_SIZE,
+            qos_profile
+            #self.state_preprocessor.ROS_QUEUE_SIZE,
         )
         self.create_subscription(
             self.observation_formater.ROS_TYPE,

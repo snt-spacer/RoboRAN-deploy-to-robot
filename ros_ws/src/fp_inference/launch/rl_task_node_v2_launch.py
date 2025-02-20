@@ -21,11 +21,15 @@ def generate_launch_description():
                         "device": "cuda:0",
                         "max_steps": 250,
                         "dt": 1 / 5.0,
-                        "nn_log_dir": "None",
+                        "nn_log_dir": "/RANS_DeployToRobot/models/skrl/Single/2025-02-17_10-55-30_ppo-discrete_torch_FloatingPlatform-GoToPosition",
                         "nn_checkpoint_path": "None",
                         "terminate_on_completion": False,
                         "logs_save_path": "/RANS_DeployToRobot/ros_experiments_logs",
                     }
+                ],
+                remappings=[
+                    ("state_preprocessor_input", "/vrpn_mocap/RigidBody_005/pose"),
+                    ("robot_interface_commands", "spacer_floating_platform/valves/input"),
                 ],
             )
         ]
