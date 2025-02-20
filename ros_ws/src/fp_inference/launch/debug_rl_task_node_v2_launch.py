@@ -27,7 +27,10 @@ def generate_launch_description():
                         "logs_save_path": "./ros_data_logs",
                     }
                 ],
-                remappings=[("state_preprocessor_input", "/vrpn_client_node/FP_exp_RL/PoseStamped")],
+                remappings=[
+                    ("state_preprocessor_input", "/vrpn_client_node/FP_exp_RL/PoseStamped"),
+                    ("robot_interface_commands", "/spacer_floating_platform/valves/input"),
+                ]
             )
         ]
     )
