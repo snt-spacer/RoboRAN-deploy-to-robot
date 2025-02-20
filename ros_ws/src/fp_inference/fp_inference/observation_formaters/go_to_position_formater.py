@@ -85,8 +85,7 @@ class GoToPositionFormater(Registerable, BaseFormater):
         self._task_data[:, 1] = torch.cos(self.target_heading_error)
         self._task_data[:, 2] = torch.sin(self.target_heading_error)
         self._task_data[:, 3:5] = self._state_preprocessor.linear_velocities_body[:, :2]
-        self._task_data[:, 5] = -self._state_preprocessor.angular_velocities_body[:, -1]
-        print(self._task_data)
+        self._task_data[:, 5] = self._state_preprocessor.angular_velocities_body[:, -1]
         self._observation = torch.cat((self._task_data, actions), dim=1)
         self.check_task_completion()
 
