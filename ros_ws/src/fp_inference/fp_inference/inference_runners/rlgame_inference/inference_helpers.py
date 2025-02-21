@@ -222,9 +222,9 @@ class BasicPpoPlayerContinuous(BasicBasePlayer):
 
     def restore(self, path):
         checkpoint = torch.load(path, weights_only=False)
-        self.model.load_state_dict(checkpoint["model"], weights_only=True)
+        self.model.load_state_dict(checkpoint["model"])
         if self.normalize_input and "running_mean_std" in checkpoint:
-            self.model.running_mean_std.load_state_dict(checkpoint["running_mean_std"], weights_only=True)
+            self.model.running_mean_std.load_state_dict(checkpoint["running_mean_std"])
 
     def reset(self):
         self.init_rnn()
