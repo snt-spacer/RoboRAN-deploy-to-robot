@@ -92,7 +92,7 @@ class BaseRobotInterface:
 
     @property
     def pre_kill_action(self) -> Any:
-        raise NotImplementedError("Pre-kill action not implemented")
+        return self.kill_action
     
     @property
     def kill_action(self) -> Any:
