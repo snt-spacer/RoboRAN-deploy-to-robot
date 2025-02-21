@@ -32,6 +32,8 @@ class FloatingPlatformInterface(Registerable, BaseRobotInterface):
         # Action space
         self._action_space = spaces.MultiDiscrete([2] * 8)
         self._num_actions = 8
+        
+        self._remapping = [5, 1, 3, 7, 0, 4, 6, 2]
 
     @property
     def kill_action(self) -> Int16MultiArray:
@@ -60,8 +62,8 @@ class FloatingPlatformInterface(Registerable, BaseRobotInterface):
         actions = torch.clamp(actions, 0, 1)
         # Store the actions
         self._last_actions = copy.copy(actions)
-        # Convert the actions to bytes message
-        actions = [1] + actions[0].int().tolist()
+        # Convert the actions to Int16MultiArray message
+        actions = [1] + actions[0][self._remapping].int().tolist()
         self.commands.data = actions
         # Return the commands
         return self.commands
