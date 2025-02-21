@@ -18,7 +18,6 @@ class ONNXInferenceRunner:
         self._provider = "CUDAExecutionProvider" if "cuda" in self._device else "CPUExecutionProvider"
         self._checkpoint_path = checkpoint_path
 
-
     def act(self, states: torch.Tensor, *args, **kwargs) -> torch.Tensor:
         output = self.ort_model.run(None, states)
         return output

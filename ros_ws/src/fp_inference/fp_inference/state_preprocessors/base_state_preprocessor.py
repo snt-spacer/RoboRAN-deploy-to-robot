@@ -255,7 +255,7 @@ class BaseStatePreProcessor:
             torch.Tensor: The 2D rotation matrix. Tensor shape: [N, 2, 2]"""
 
         return torch.tensor(
-            [[torch.cos(heading), -torch.sin(heading)], [torch.sin(heading), torch.cos(heading)]],
+            [[torch.cos(heading), torch.sin(heading)], [-torch.sin(heading), torch.cos(heading)]],
             device=heading.device,
         )
 
