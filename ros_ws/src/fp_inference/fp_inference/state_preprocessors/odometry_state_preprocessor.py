@@ -36,7 +36,7 @@ class OdometryStatePreProcessor(Registerable, BaseStatePreProcessor):
         Returns:
             torch.Tensor[N, 3] | None: The linear velocities in the world frame if available, otherwise None."""
 
-        if (self.linear_velocities_world is not None) and (self._step_linear_velocity_body != self._step):
+        if (self._linear_velocities_body is not None) and (self._step_linear_velocity_body != self._step):
             self.get_linear_velocities_world()
             # Update the step count for lazy updates
             self._step_linear_velocity_body = copy.copy(self._step)
@@ -49,7 +49,7 @@ class OdometryStatePreProcessor(Registerable, BaseStatePreProcessor):
         Returns:
             torch.Tensor[N, 3] | None: The angular velocities in the world frame if available, otherwise None."""
 
-        if (self.angular_velocities_world is not None) and (self._step_angular_velocity_body != self._step):
+        if (self._angular_velocities_body is not None) and (self._step_angular_velocity_body != self._step):
             self._angular_velocities_world = self._angular_velocities_body
             # Update the step count for lazy updates
             self._step_angular_velocity_body = copy.copy(self._step)
@@ -80,7 +80,7 @@ class OdometryStatePreProcessor(Registerable, BaseStatePreProcessor):
         # Get heading & rotation matrix
         inv_rotation_matrix = torch.linalg.pinv(self.rotation_matrix)
         # Cast the velocities to the world frame
-        self._linear_velocities_world[:, :2] = inv_rotation_matrix @ self._linear_velocities_body.unsqueeze(1)
+        self._linear_velocities_world[0, :2] = inv_rotation_matrix[0] @ self._linear_velocities_body[0, :2]
 
     def update_state_ROS(self, odometry: Odometry, **kwargs) -> None:
         """Update the state processor with a new odometry message. If the state processor is primed, update the state.
