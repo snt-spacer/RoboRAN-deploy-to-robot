@@ -29,6 +29,8 @@ class VirtualFloatingPlatformInterface(Registerable, BaseRobotInterface):
         actions = [0] * 9  # Everything off
         self.commands.data = [value.to_bytes(1, byteorder="little") for value in actions]
 
+        self._remapping = [7, 0, 1, 2, 3, 4, 5, 6]
+
         # Action space
         self._action_space = spaces.MultiDiscrete([2] * 8)
         self._num_actions = 8
@@ -69,7 +71,7 @@ class VirtualFloatingPlatformInterface(Registerable, BaseRobotInterface):
         # Store the actions
         self._last_actions = copy.copy(actions)
         # Convert the actions to bytes message
-        actions = [1] + actions[0].int().tolist()
+        actions = [1] + actions[0][self._remapping].int().tolist()
         self.commands.data = [value.to_bytes(1, byteorder="little") for value in actions]
         # Return the commands
         return self.commands

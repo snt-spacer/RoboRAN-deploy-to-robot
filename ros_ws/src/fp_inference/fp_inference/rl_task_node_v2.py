@@ -96,7 +96,7 @@ class RLTaskNode(Node):
         self.state_preprocessor = StatePreprocessorFactory.create(self._state_preprocessor_name, device=self._device)
         self.robot_interface = RobotInterfaceFactory.create(self._robot_interface_name, device=self._device)
         self.observation_formater = ObservationFormaterFactory.create(
-            self._task_name, self.state_preprocessor, num_actions=self.robot_interface.num_actions, device=self._device
+            self._task_name, self.state_preprocessor, num_actions=self.robot_interface.num_actions, max_steps = self._max_steps, device=self._device
         )
         self.inference_runner = InferenceRunnerFactory.create(
             self._inference_runner_name,
