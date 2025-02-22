@@ -48,14 +48,16 @@ class GoToPoseFormater(Registerable, BaseFormater):
         self._logs["heading_error"] = torch.zeros((1, 1), device=self._device)
         self._logs["target_position"] = torch.zeros((1, 2), device=self._device)
         self._logs["target_heading"] = torch.zeros((1, 1), device=self._device)
+
         self._logs_specs["distance_error"] = [".m"]
-        self._logs_specs["position_heading_error"] = [".rad"]
+        self._logs_specs["target_heading_error"] = [".rad"]
+        self._logs_specs["heading_error"] = [".rad"]
         self._logs_specs["target_position"] = [".x.m", ".y.m"]
         self._logs_specs["target_heading"] = [".rad"]
 
     def update_logs(self):
-        self._logs["distance_error"] = self.dist
-        self._logs["position_heading_error"] = self.target_heading_error
+        self._logs["distance_error"] = self.dist.unsqueeze(0)
+        self._logs["target_heading_error"] = self.target_heading_error
         self._logs["heading_error"] = self.heading_error
         self._logs["target_position"] = self._target_position
         self._logs["target_heading"] = self._target_heading
@@ -97,7 +99,7 @@ class GoToPoseFormater(Registerable, BaseFormater):
         self._task_data[:, 2] = torch.sin(self.target_heading_error)
         self._task_data[:, 3] = torch.cos(self.heading_error)
         self._task_data[:, 4] = torch.sin(self.heading_error)
-        self._task_data[:, 6:7] = self._state_preprocessor.linear_velocities_body[:, :2]
+        self._task_data[:, 5:7] = self._state_preprocessor.linear_velocities_body[:, :2]
         self._task_data[:, 7] = self._state_preprocessor.angular_velocities_body[:, -1]
 
         self._observation = torch.cat((self._task_data, actions), dim=1)
