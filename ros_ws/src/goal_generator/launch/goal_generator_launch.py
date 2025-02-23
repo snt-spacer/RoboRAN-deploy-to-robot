@@ -22,7 +22,7 @@ def generate_launch_description():
                 emulate_tty=True,
                 parameters=[
                     {
-                        "task_name": "GoT",
+                        "task_name": "TrackVelocities",
                         "goals_file_path": goals_file_path,
                         "state_preprocessor_name": "Optitrack",
                         "device": "cuda:0",

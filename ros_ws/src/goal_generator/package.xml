@@ -18,6 +18,9 @@
   <test_depend>python3-pytest</test_depend>
 
   <depend>ament_index_python</depend>
+  <depend>fp_inference</depend>
+  <depend>custom_msgs</depend>
+
   <export>
     <build_type>ament_python</build_type>
   </export>
