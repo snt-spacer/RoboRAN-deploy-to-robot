@@ -41,22 +41,26 @@ class TrackVelocitiesTask(Registerable, BaseFormater):
 
     def build_logs(self):
         super().build_logs()
-        self._logs["linear_vel_error"] = torch.zeros((1,3), device=self._device)
-        self._logs["angular_vel_error"] = torch.zeros((1,1), device=self._device)
+        self._logs["target_linear_vel"] = torch.zeros((1,1), device=self._device)
+        self._logs["target_lateral_vel"] = torch.zeros((1,1), device=self._device)
+        self._logs["target_angular_vel"] = torch.zeros((1,1), device=self._device)
         self._logs["task_data"] = torch.zeros((1, 8), device=self._device)
-        self._logs_specs["linear_vel_error"] = ["x.m.s", "y.m.s", "z.m.s"]
-        self._logs_specs["angular_vel_error"] = ["x.m.s", "y.m.s", "z.m.s"]
-        self._logs_specs["task_data"] = [".lin_vel_error.x.m/s",
-                                         ".lin_vel_error.y.m/s",
-                                         ".ang_vel_error.z.rad/s",
+        self._logs_specs["linear_vel_error"] = [".m.s"]
+        self._logs_specs["lateral_vel_error"] = [".m/s"]
+        self._logs_specs["angular_vel_error"] = [".rad/s"]
+        self._logs_specs["task_data"] = [".lin_vel_error.m/s",
+                                         ".lat_vel_error.m/s",
+                                         ".ang_vel_error.rad/s",
                                          ".lin_vel_body.x.m/s",
                                          ".lin_vel_body.y.m/s",
                                          ".ang_vel_body.z.rad/s"]
 
 
     def update_logs(self):
-        self._logs["lin_vel_error"] = self._target_lin_vel
-        self._logs["ang_vel_error"] = self._target_ang_vel
+        self._logs["target_lin_vel"] = self._target_lin_vel
+        self._logs["target_lat_vel"] = self._target_lat_vel
+        self._logs["target_ang_vel"] = self._target_ang_vel
+        self._logs["task_data"] = self._task_data
 
     def check_task_completition(self) -> None:
         """ Check if the task has been completed."""
