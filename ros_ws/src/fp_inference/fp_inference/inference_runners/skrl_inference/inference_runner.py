@@ -26,7 +26,6 @@ from . import generate_models, get_state_preprocessor
 
 
 class SKRLInferenceRunner(Registerable):
-
     def __init__(
         self,
         logdir: str | None = None,
@@ -184,7 +183,7 @@ class SKRLInferenceRunner(Registerable):
         # sample stochastic actions
         with torch.autocast(device_type=self._device_type, enabled=self._mixed_precision):
             actions, log_prob, outputs = self._policy.act({"states": self._state_preprocessor(states)}, role="policy")
-        
+
         return actions
 
     def ppo_rnn_act(self, states: torch.Tensor, timestep: int = 0, timesteps: int = 0, **kwargs) -> torch.Tensor:
@@ -271,7 +270,9 @@ class SKRLInferenceRunner(Registerable):
             resume_path: The path to the checkpoint to restore the model from."""
 
         # Generate the models
-        self._models = generate_models(copy.deepcopy(self._env), copy.deepcopy(self._cfg), self._action_space, self._device)
+        self._models = generate_models(
+            copy.deepcopy(self._env), copy.deepcopy(self._cfg), self._action_space, self._device
+        )
         # Generate the preprocessor
         self._state_preprocessor = get_state_preprocessor(
             copy.deepcopy(self._env), copy.deepcopy(self._cfg), self._device

@@ -8,8 +8,11 @@ class BaseRobotInterface:
     """A base class for robot interfaces.
     The class is used to interface with a robot, send commands to the robot, and log the actions taken."""
 
-    def __init__(self, device: str = "auto", **kwargs):
-        """Initialize the robot interface."""
+    def __init__(self, device: str = "auto", **kwargs) -> None:
+        """Initialize the robot interface.
+
+        Args:
+            device (str): The device to perform computations on. Defaults to "auto"."""
 
         # ROS parameters
         self.ROS_ACTION_TYPE = None
@@ -24,6 +27,7 @@ class BaseRobotInterface:
 
         # Action space
         self._action_space: spaces = None
+        self._last_actions: torch.Tensor = None
         self._num_actions: int = 0
 
         # Lazy updates of state variables
@@ -35,15 +39,17 @@ class BaseRobotInterface:
         # Log hook
         self.build_logs()
 
-    def build_logs(self):
-        """Build the logs for the robot interface. In this case, we log the thrusters firing."""
+    def build_logs(self) -> None:
+        """Build the logs for the robot interface. Logging robot related things, such as actions."""
 
-        # Log hook
+        # Robot logs
         self._logs = {}
+
+        # Log specifications, this is used to provide a user friendly way to interpret the logs.
         self._logs_specs = {}
         self._logs["actions"] = None
 
-    def update_logs(self):
+    def update_logs(self) -> None:
         """Function used to update the logs for the robot interface."""
 
         self._logs["actions"] = self.last_actions
@@ -56,10 +62,7 @@ class BaseRobotInterface:
 
     @property
     def logs(self) -> dict[str, torch.Tensor]:
-        """Return the logs for the robot interface.
-
-        Returns:
-            dict[str, torch.Tensor]: The logs for the robot interface."""
+        """Return the logs for the robot interface."""
 
         if self._step_logs != self._step:
             self._step_logs = copy.copy(self._step)
@@ -73,7 +76,7 @@ class BaseRobotInterface:
         return self._logs.keys()
 
     @property
-    def logs_specs(self):
+    def logs_specs(self) -> dict[str, list[str]]:
         """Return the logs specifications for the robot interface."""
 
         return self._logs_specs
@@ -92,25 +95,37 @@ class BaseRobotInterface:
 
     @property
     def pre_kill_action(self) -> Any:
+        """Return the pre kill action for the robot interface. This is the action called before the kill action.
+        This is meant to send an action that does not completely shuts down the robot, but preps it for the
+        kill action."""
+
+        # In most cases this is not needed and is set to the regular kill action.
         return self.kill_action
-    
+
     @property
     def kill_action(self) -> Any:
+        """Return the kill action for the robot interface. This is the action called when the task is done.
+        It is meant to stop the robot and prepping it for the next task."""
+
         raise NotImplementedError("Kill action not implemented")
 
-    def get_logs(self):
+    def get_logs(self) -> dict[str, torch.Tensor]:
         """Hook function used by the logger to get the logs for the robot interface."""
 
         return self.logs
 
     def cast_actions(self, actions: torch.Tensor) -> Any:
-        """Cast the actions to the robot interface format."""
+        """Cast the actions to the robot interface format.
+
+        Args:
+            actions (torch.Tensor): The actions to be casted into the robot interface format."""
 
         # Steps the interface when actions are casted
         self._step += 1
 
-    def reset(self):
-        """Reset the robot interface. This is called when the task is done and the robot needs to be reset for the next task."""
+    def reset(self) -> None:
+        """Reset the robot interface. This is called when the task is done and the robot needs to be reset for the
+        next task."""
 
         self._step = 0
         self._step_logs = 0

@@ -28,6 +28,7 @@ class GoThroughPositionFormater(Registerable, BaseFormater):
         num_actions: int = 2,
         **kwargs,
     ) -> None:
+        """Task formatter for the go through position task. The task is to go through a position."""
         super().__init__(state_preprocessor, device, max_steps, task_cfg)
 
         # General parameters

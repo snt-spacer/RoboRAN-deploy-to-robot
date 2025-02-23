@@ -15,38 +15,42 @@ from .utils import Logger
 
 from rcl_interfaces.msg import ParameterDescriptor
 
-from rclpy.qos import QoSProfile, QoSReliabilityPolicy, QoSHistoryPolicy
 
 class RLTaskNode(Node):
-    def __init__(self):
+    """ROS2 node that runs a reinforcement learning task."""
+
+    def __init__(self) -> None:
+        """Initialize the node by setting the parameters and building the task."""
         super().__init__("rl_task_node")
 
         # Parameters
         task_name_desc = ParameterDescriptor(
-            description='The name of the task to be executed. Currently the following tasks are supported: {}".'.format(
+            description='The name of the task to be executed.\
+                Currently the following tasks are supported: {}".'.format(
                 ", ".join(ObservationFormaterFactory.registry.keys())
             )
         )
         self.declare_parameter("task_name", "GoToPosition", task_name_desc)
         self._task_name = self.get_parameter("task_name").get_parameter_value().string_value
         state_preprocessor_name_desc = ParameterDescriptor(
-            description='The name of the state preprocessor to be used. Currently the following state preprocessors are supported: {}".'.format(
+            description='The name of the state preprocessor to be used.\
+                Currently the following state preprocessors are supported: {}".'.format(
                 ", ".join(StatePreprocessorFactory.registry.keys())
             )
         )
         self.declare_parameter("state_preprocessor_name", "Optitrack", state_preprocessor_name_desc)
-        self._state_preprocessor_name = (
-            self.get_parameter("state_preprocessor_name").get_parameter_value().string_value
-        )
+        self._state_preprocessor_name = self.get_parameter("state_preprocessor_name").get_parameter_value().string_value
         robot_interface_name_desc = ParameterDescriptor(
-            description='The name of the robot interface to be used. Currently the following robot interfaces are supported: {}".'.format(
+            description='The name of the robot interface to be used.\
+                Currently the following robot interfaces are supported: {}".'.format(
                 ", ".join(RobotInterfaceFactory.registry.keys())
             )
         )
         self.declare_parameter("robot_interface_name", "FloatingPlatform", robot_interface_name_desc)
         self._robot_interface_name = self.get_parameter("robot_interface_name").get_parameter_value().string_value
         inference_runner_name_desc = ParameterDescriptor(
-            description='The name of the inference runner to be used. Currently the following inference runners are supported: {}".'.format(
+            description='The name of the inference runner to be used.\
+                Currently the following inference runners are supported: {}".'.format(
                 ", ".join(InferenceRunnerFactory.registry.keys())
             )
         )
@@ -56,7 +60,8 @@ class RLTaskNode(Node):
         self.declare_parameter("enable_logging", False, enable_logging_desc)
         self._enable_logging = self.get_parameter("enable_logging").get_parameter_value().bool_value
         device_desc = ParameterDescriptor(
-            description='The device to be used for the task. If set to "auto", the device will be selected automatically.'
+            description='The device to be used for the task.\
+                If set to "auto", the device will be selected automatically.'
         )
         self.declare_parameter("device", "auto", device_desc)
         self._device = self.get_parameter("device").get_parameter_value().string_value
@@ -88,15 +93,22 @@ class RLTaskNode(Node):
         # Build the task
         self.build()
 
-    def build(self):
-        """Build the task by creating the state preprocessor, observation formater, inference runner, and robot interface."""
+    def build(self) -> None:
+        """Build the task.
 
+        This is done by creating the state preprocessor, observation formater, inference runner, and robot
+        interface.
+        """
         self.get_logger().info("Building task...")
 
         self._state_preprocessor = StatePreprocessorFactory.create(self._state_preprocessor_name, device=self._device)
         self._robot_interface = RobotInterfaceFactory.create(self._robot_interface_name, device=self._device)
         self._observation_formater = ObservationFormaterFactory.create(
-            self._task_name, self._state_preprocessor, num_actions=self._robot_interface.num_actions, max_steps = self._max_steps, device=self._device
+            self._task_name,
+            self._state_preprocessor,
+            num_actions=self._robot_interface.num_actions,
+            max_steps=self._max_steps,
+            device=self._device,
         )
         self._inference_runner = InferenceRunnerFactory.create(
             self._inference_runner_name,
@@ -118,13 +130,12 @@ class RLTaskNode(Node):
             "state_preprocessor_input",
             self._state_preprocessor.ROS_CALLBACK,
             self._state_preprocessor.QOS_PROFILE,
-            #self.state_preprocessor.ROS_QUEUE_SIZE,
         )
         self.create_subscription(
             self._observation_formater.ROS_TYPE,
             "observation_formater_input",
             self._observation_formater.ROS_CALLBACK,
-            self._observation_formater.ROS_QUEUE_SIZE,
+            self._observation_formater.QOS_PROFILE,
         )
         self.create_subscription(Bool, "reset_task", self.reset_task, 1)
 
@@ -132,7 +143,7 @@ class RLTaskNode(Node):
         self.action_pub = self.create_publisher(
             self._robot_interface.ROS_ACTION_TYPE,
             "robot_interface_commands",
-            self._robot_interface.ROS_ACTION_QUEUE_SIZE,
+            self._robot_interface.QOS_PROFILE,
         )
         self.task_available_pub = self.create_publisher(
             Bool,
@@ -141,12 +152,16 @@ class RLTaskNode(Node):
         )
         self._done_msg = Bool()
         self._done_msg.data = True
+        self._kill_signal = False
 
         self.get_logger().info("Task built!")
 
-    def reset_task(self, msg: Bool):
-        """Reset the task by resetting the state preprocessor, observation formater, inference runner, and robot interface."""
+    def reset_task(self, *args, **kwargs) -> None:
+        """Reset the task.
 
+        This is done by resetting the state preprocessor, observation formater, inference runner, and robot
+        interface.
+        """
         self.get_logger().info("Reset received. Terminating task.")
 
         # Reset all the components
@@ -155,21 +170,21 @@ class RLTaskNode(Node):
         self._inference_runner.reset()
         self._robot_interface.reset()
 
-    def advertize_task_status(self):
+    def advertize_task_status(self) -> None:
         """Advertize the task status by publishing the task status every second."""
         advertize_rate = self.create_rate(1.0)
-        while rclpy.ok() or ~self._kill_signal:
+        while rclpy.ok() or (not self._kill_signal):
             self._done_msg.data = self._
             self.task_available_pub.publish(self._done_msg)
-            rclpy.spin_once(self)
+            advertize_rate.sleep()
         self.task_available_pub.publish(self._done_msg)
 
-    def run_task(self):
+    def run_task(self) -> None:
         """Run the task by executing the main task loop."""
         self.get_logger().info("Running task...")
         # Create a rate object
         rate = self.create_rate(1.0 / self._dt)
-        self._observation_formater.is_live = True
+        self._observation_formater._task_is_live = True
         # Main task loop
         while rclpy.ok():
             # Get the current observation
@@ -186,7 +201,8 @@ class RLTaskNode(Node):
             # Sleep
             rate.sleep()
 
-    def run(self):
+    def run(self) -> None:
+        """Run the task node by waiting for a goal to be received and then running the task."""
         # Check every second if a goal has been received
         wait_rate = self.create_rate(1.0)
         while rclpy.ok():
@@ -213,7 +229,7 @@ class RLTaskNode(Node):
             self.get_logger().info("Waiting for goal...")
             wait_rate.sleep()
 
-    def prime_state_preprocessor(self):
+    def prime_state_preprocessor(self) -> None:
         """Wait for the state preprocesseor to be ready."""
         self.get_logger().info("Warming up the state preprocessor...")
         obs_rate = self.create_rate(1.0 / self._dt)
@@ -223,21 +239,16 @@ class RLTaskNode(Node):
             obs_rate.sleep()
         self.get_logger().info("State preprocessor is ready!")
 
-    def shutdown(self):
-        """Shutdown the node."""
-        self.get_logger().info("Unexpected shutdown! Trying to kill the robot.")
-        self.action_pub(self._robot_interface.kill_action)
-        self.get_logger().info("Trying to save the logs.")
-        self._data_logger.save()
-        self.destroy_node()
-        rclpy.shutdown()
-
-    def clean_termination(self):
+    def shutdown(self) -> None:
+        """Shut down the node."""
+    def clean_termination(self) -> None:
+        """Terminate the node."""
         self.destroy_node()
         rclpy.shutdown()
 
 
 def main(args=None):
+    """Start the ROS2 node."""
     rclpy.init(args=args)
 
     task_node = RLTaskNode()

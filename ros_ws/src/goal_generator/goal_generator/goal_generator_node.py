@@ -26,9 +26,7 @@ class GoalPublisherNode(Node):
         self._task_name = self.get_parameter("task_name").get_parameter_value().string_value
 
         # Goals file path
-        goals_file_path_desc = ParameterDescriptor(
-            description="The path to the file containing the goals."
-        )
+        goals_file_path_desc = ParameterDescriptor(description="The path to the file containing the goals.")
         self.declare_parameter("goals_file_path", "", goals_file_path_desc)
         self._goals_file_path = self.get_parameter("goals_file_path").get_parameter_value().string_value
 
@@ -46,12 +44,9 @@ class GoalPublisherNode(Node):
             )
         )
         self.declare_parameter("state_preprocessor_name", "Optitrack", state_preprocessor_name_desc)
-        self._state_preprocessor_name = (
-            self.get_parameter("state_preprocessor_name").get_parameter_value().string_value
-        )
+        self._state_preprocessor_name = self.get_parameter("state_preprocessor_name").get_parameter_value().string_value
 
         self.task_is_live = False
-
 
         self.build()
 
@@ -69,8 +64,8 @@ class GoalPublisherNode(Node):
 
         # ROS2 Publishers
         self.goal_pub = self.create_publisher(
-            self.goal_formater.ROS_TYPE, 
-            "observation_formater_input", 
+            self.goal_formater.ROS_TYPE,
+            "observation_formater_input",
             self.goal_formater.ROS_QUEUE_SIZE,
         )
 
@@ -83,11 +78,9 @@ class GoalPublisherNode(Node):
                 self.run_task()
                 if self.goal_formater.task_completed:
                     break
-            
+
             self.get_logger().info("Waiting for subscriber to connect")
             time.sleep(1)
-
-                
 
     def run_task(self):
         while rclpy.ok():
@@ -95,7 +88,7 @@ class GoalPublisherNode(Node):
             if self.goal_formater.send_goal and self.goal_pub.get_subscription_count() != 0:
                 self.goal_pub.publish(self.goal_formater.goal)
                 self.get_logger().info(self.goal_formater.log_publish())
-            
+
             if self.goal_formater.task_completed:
                 break
 
@@ -106,16 +99,18 @@ class GoalPublisherNode(Node):
         self.destroy_node()
         rclpy.shutdown()
 
+
 def main(args=None):
     rclpy.init(args=args)
     goal_publisher_node = GoalPublisherNode()
-    
+
     thread = threading.Thread(target=rclpy.spin, args=(goal_publisher_node,), daemon=True)
     thread.start()
 
     goal_publisher_node.run()
     goal_publisher_node.clean_termination()
     thread.join()
+
 
 if __name__ == "__main__":
     main()

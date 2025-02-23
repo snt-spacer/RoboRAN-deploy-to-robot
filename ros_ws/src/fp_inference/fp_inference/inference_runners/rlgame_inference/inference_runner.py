@@ -48,7 +48,7 @@ class RLGamesInferenceRunner(BaseInferenceRunner, Registerable):
             return gym.spaces.Box(-np.inf, np.inf, action_space.shape)
         elif isinstance(action_space, gymnasium.spaces.MultiDiscrete):
             return gym.spaces.Tuple([gym.spaces.Discrete(n) for n in action_space.nvec])
-        
+
     def _convert_observation_space(self, observation_space: gymnasium.spaces.Space) -> gym.spaces.Space:
         if not isinstance(observation_space, gymnasium.spaces.Box):
             raise NotImplementedError(
@@ -59,7 +59,6 @@ class RLGamesInferenceRunner(BaseInferenceRunner, Registerable):
         # note: maybe should check if we are a sub-set of the actual space. don't do it right now since
         #   in ManagerBasedRLEnv we are setting action space as (-inf, inf).
         return gym.spaces.Box(-np.inf, np.inf, observation_space.shape)
-
 
     def load_model(
         self,
@@ -89,11 +88,21 @@ class RLGamesInferenceRunner(BaseInferenceRunner, Registerable):
 
         if isinstance(self._action_space, gym.spaces.Tuple):
             self.player = BasicPpoPlayerDiscrete(
-                self._cfg, self._observation_space, self._action_space, clip_actions=False, deterministic=True, device=self._device
+                self._cfg,
+                self._observation_space,
+                self._action_space,
+                clip_actions=False,
+                deterministic=True,
+                device=self._device,
             )
         else:
             self.player = BasicPpoPlayerContinuous(
-                self._cfg, self._observation_space, self._action_space, clip_actions=False, deterministic=True, device=self._device
+                self._cfg,
+                self._observation_space,
+                self._action_space,
+                clip_actions=False,
+                deterministic=True,
+                device=self._device,
             )
 
     def load_weigths(self, model_name: str) -> None:
@@ -103,9 +112,9 @@ class RLGamesInferenceRunner(BaseInferenceRunner, Registerable):
         Args:
             model_name (str): A string containing the path to the checkpoint of an RLGames model matching the configuation file.
         """
-        
+
         self.player.restore(model_name)
 
     def act(self, state, is_deterministic=True, **kwargs) -> torch.Tensor:
-        actions = (self.player.get_action(state, is_deterministic=is_deterministic))
+        actions = self.player.get_action(state, is_deterministic=is_deterministic)
         return actions.unsqueeze(0)

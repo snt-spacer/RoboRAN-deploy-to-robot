@@ -5,11 +5,22 @@ import copy
 
 
 class BaseStatePreProcessor:
-    """A class to process state information from a robot. The state processor maintains a buffer of the robot's position,
-    quaternion, and time. The state processor can compute the heading, rotation matrix, linear velocities in the world frame,
-    and linear velocities in the body frame. The state processor is primed after a certain number of steps, after which the
-    state can be accessed through the state variables.
-    All the operations are done on the GPU to ensure mimum CPU-GPU data transfer.
+    """A class to process state information from a robot.
+
+    The state processor maintains a buffer of the robot's position, quaternion, and time. The state processor can
+    compute the heading, rotation matrix, linear velocities in the world frame, and linear velocities in the body
+    frame. The state processor is primed after a certain number of steps, after which the state can be accessed
+    through the state variables. All the operations are done on the GPU to ensure mimum CPU-GPU data transfer.
+
+    IMPORTANT:
+    The base state preprocessor expects the following:
+    - The state processor is updated with a ROS message.
+    - The ROS message is providing the position and quaternion of the robot in a World frame.
+    - The ROS message is providing the linear and angular velocities of the robot in a World frame.
+
+    If the ROS message is not providing the linear and angular velocities in the World frame, the child class should
+    overload the update functions / properties associated with the linear and angular velocities. Examples of such
+    functions can be seen in the `OdometryStatePreprocessor`.
     """
 
     def __init__(self, buffer_size: int = 30, device: str = "auto", **kwargs) -> None:
@@ -19,14 +30,15 @@ class BaseStatePreProcessor:
             buffer_size (int, optional): The size of the state buffer. Defaults to 30.
             device (str, optional): The device to perform computations on. Defaults to "auto".
         """
-
         # General parameters
         self._device = device
         self._buffer_size = buffer_size
         self.ROS_TYPE = None
         self.ROS_CALLBACK = self.update_state_ROS
         self.ROS_QUEUE_SIZE = 1
-        self.QOS_PROFILE = QoSProfile(reliability=QoSReliabilityPolicy.BEST_EFFORT, history=QoSHistoryPolicy.KEEP_LAST, depth=1)
+        self.QOS_PROFILE = QoSProfile(
+            reliability=QoSReliabilityPolicy.BEST_EFFORT, history=QoSHistoryPolicy.KEEP_LAST, depth=1
+        )
 
         # Device selection
         if device == "auto":
@@ -62,11 +74,13 @@ class BaseStatePreProcessor:
         self.build_logs()
 
     def build_logs(self) -> None:
-        """Build the logs for the state processor. In this case, we log the position, quaternion, heading, linear velocities,
-        angular velocities, ROS time, and elapsed time. Also build the log specs for the state variables.
-        Logs specs are used to define the units of the state variables."""
+        """Build the logs for the state processor.
 
-        # Log hook
+        In this case, we log the position, quaternion, heading, linear velocities, angular velocities, ROS time,
+        and elapsed time. Also build the log specs for the state variables. Logs specs are used to define the units
+        of the state variables.
+        """
+        # State preprocessor logs
         self._logs = {}
         self._logs["position_world"] = torch.zeros((1, 3), device=self._device)
         self._logs["quaternion_world"] = torch.zeros((1, 4), device=self._device)
@@ -77,6 +91,8 @@ class BaseStatePreProcessor:
         self._logs["angular_velocities_body"] = torch.zeros((1, 3), device=self._device)
         self._logs["ros_time"] = torch.zeros((1, 1), device=self._device)
         self._logs["elapsed_time"] = torch.zeros((1, 1), device=self._device)
+
+        # Log specifications, this is used to provide a user friendly way to interpret the logs.
         self._logs_specs = {}
         self._logs_specs["position_world"] = [".x.m", ".y.m", ".z.m"]
         self._logs_specs["quaternion_world"] = [".w.quat", ".x.quat", ".y.quat", ".z.quat"]
@@ -89,8 +105,7 @@ class BaseStatePreProcessor:
         self._logs_specs["elapsed_time"] = [".s"]
 
     def update_logs(self) -> None:
-        """Function used to update the logs for the state processor."""
-
+        """Update the logs for the state processor."""
         self._logs["position_world"] = self.position
         self._logs["quaternion_world"] = self.quaternion
         self._logs["heading_world"] = self.heading
@@ -104,54 +119,49 @@ class BaseStatePreProcessor:
         self._logs["elapsed_time"] = torch.tensor([[self._time - self._start_time]], device=self._device)
 
     @property
-    def logs(self):
-        """Return the logs for the state processor."""
+    def logs(self) -> dict["str", torch.Tensor]:
+        """Logs for the state processor.
 
+        The logs are updated using a lazy update mechanism to avoid unnecessary computations. The logs are updated
+        every time they are accessed.
+        """
         if self._step_logs != self._step:
             self._step_logs = copy.copy(self._step)
             self.update_logs()
         return self._logs
 
     @property
-    def logs_names(self):
-        """Return the logs names for the state processor."""
-
+    def logs_names(self) -> list[str]:
+        """Logs names for the state processor."""
         return self._logs.keys()
 
     @property
-    def logs_specs(self):
-        """Return the logs specifications for the state processor."""
-
+    def logs_specs(self) -> dict[str, list[str]]:
+        """The logs specifications for the state processor."""
         return self._logs_specs
 
     @property
     def is_primed(self) -> bool:
-        """Return whether the state processor is primed and ready to provide state information."""
-
+        """Whether the state processor is primed and ready to provide state information."""
         return self._is_primed
 
     @property
     def step(self) -> int:
-        """Return the current step count."""
-
+        """The current step count."""
         return self._step
 
     @property
     def position(self) -> torch.Tensor | None:
-        """Return the current position (x, y, z). If the position is not available, return None.
-
-        Returns:
-            torch.Tensor[N, 3] | None: The position if available, otherwise None."""
-
+        """The current position (x, y, z). If the position is not available, output None."""
         return self._position
 
     @property
     def heading(self) -> torch.Tensor | None:
-        """Return the current heading (yaw angle in radians). If the heading is not available, return None.
+        """The current heading (yaw angle in radians).
 
-        Returns:
-            torch.Tensor[N, 1] | None: The heading if available, otherwise None."""
-
+        If the heading is not available, return None. The update is lazy, so the heading is only computed when
+        it is requested. Also, the heading is only updated when the quaternion changes.
+        """
         if (self.quaternion is not None) and (self._step_heading != self._step):
             self._heading[0] = self.get_heading_from_quat(self.quaternion)
             # Update the step count for lazy updates
@@ -160,21 +170,19 @@ class BaseStatePreProcessor:
 
     @property
     def quaternion(self) -> torch.Tensor | None:
-        """Return the current quaternion. Quaternion is in the form (w, x, y, z).
-        If the quaternion is not available, return None.
+        """The current quaternion.
 
-        Returns:
-            torch.Tensor[N, 4] | None: The quaternion if available, otherwise None."""
-
+        Quaternion is in the form (w, x, y, z). If the quaternion is not available, output None.
+        """
         return self._quaternion
 
     @property
     def rotation_matrix(self) -> torch.Tensor | None:
-        """Return the current rotation matrix. The format is a 2x2 matrix. If the rotation matrix is not available, return None.
+        """The current rotation matrix. The format is a 2x2 matrix.
 
-        Returns:
-            torch.Tensor[N, 2, 2] | None: The rotation matrix if available, otherwise None."""
-
+        If the rotation matrix is not available, return None. The update is lazy, so the rotation matrix is only
+        computed when it is requested. Also, the rotation matrix is only updated when the heading changes.
+        """
         if (self.quaternion is not None) and (self._step_rotation_matrix != self._step):
             self._rotation_matrix[0] = self.get_rotation_matrix_from_heading(self.heading)
             # Update the step count for lazy updates
@@ -183,29 +191,17 @@ class BaseStatePreProcessor:
 
     @property
     def linear_velocities_world(self) -> torch.Tensor | None:
-        """Return the linear velocities in the world frame. If the velocities are not available, return None.
-
-        Returns:
-            torch.Tensor[N, 3] | None: The linear velocities in the world frame if available, otherwise None."""
-
+        """Return the linear velocities in the world frame. If the velocities are not available, return None."""
         return self._linear_velocities_world
 
     @property
     def angular_velocities_world(self) -> torch.Tensor | None:
-        """Return the angular velocities in the world frame. If the velocities are not available, return None.
-
-        Returns:
-            torch.Tensor[N, 3] | None: The angular velocities in the world frame if available, otherwise None."""
-
+        """Return the angular velocities in the world frame. If the velocities are not available, return None."""
         return self._angular_velocities_world
 
     @property
     def linear_velocities_body(self) -> torch.Tensor | None:
-        """Return the linear velocities in the body frame. If the velocities are not available, return None.
-
-        Returns:
-            torch.Tensor[N, 3] | None: The linear velocities in the body frame if available, otherwise None."""
-
+        """Return the linear velocities in the body frame. If the velocities are not available, return None."""
         if (self.linear_velocities_world is not None) and (self._step_linear_velocity_body != self._step):
             self.get_linear_velocities_body()
             # Update the step count for lazy updates
@@ -214,12 +210,11 @@ class BaseStatePreProcessor:
 
     @property
     def angular_velocities_body(self) -> torch.Tensor | None:
-        """Return the angular velocities in the body frame. If the velocities are not available, return None.
+        """Return the angular velocities in the body frame.
+
+        If the velocities are not available, return None.
         Note: The angular velocities in the body frame are the same as the angular velocities in the world frame.
-
-        Returns:
-            torch.Tensor[N, 3] | None: The angular velocities in the body frame if available, otherwise None."""
-
+        """
         if (self.angular_velocities_world is not None) and (self._step_angular_velocity_body != self._step):
             self._angular_velocities_body = self._angular_velocities_world
             # Update the step count for lazy updates
@@ -228,7 +223,6 @@ class BaseStatePreProcessor:
 
     def get_logs(self):
         """Hook used by the logger to get the logs for the state processor."""
-
         return self.logs
 
     @staticmethod
@@ -237,10 +231,7 @@ class BaseStatePreProcessor:
 
         Args:
             quaternion (torch.Tensor): The quaternion in the form (w, x, y, z). Tensor shape: [N, 4]
-
-        Returns:
-            torch.Tensor: The heading in radians. Tensor shape: [N, 1]"""
-
+        """
         return torch.arctan2(
             2.0 * (quaternion[:, 1] * quaternion[:, 2] + quaternion[:, 3] * quaternion[:, 0]),
             1.0 - 2.0 * (quaternion[:, 2] * quaternion[:, 2] + quaternion[:, 3] * quaternion[:, 3]),
@@ -252,10 +243,7 @@ class BaseStatePreProcessor:
 
         Args:
             heading (torch.Tensor): The heading angle in radians. Tensor shape: [N, 1]
-
-        Returns:
-            torch.Tensor: The 2D rotation matrix. Tensor shape: [N, 2, 2]"""
-
+        """
         return torch.tensor(
             [[torch.cos(heading), torch.sin(heading)], [-torch.sin(heading), torch.cos(heading)]],
             device=heading.device,
@@ -267,10 +255,7 @@ class BaseStatePreProcessor:
 
         Args:
             heading (torch.Tensor): The heading in radians. Tensor shape: [N, 1]
-
-        Returns:
-            torch.Tensor: The quaternion in the form (w, x, y, z). Tensor shape: [N, 4]"""
-
+        """
         return torch.cat(
             (torch.cos(heading / 2), torch.zeros_like(heading), torch.zeros_like(heading), torch.sin(heading / 2)),
             dim=1,
@@ -283,10 +268,7 @@ class BaseStatePreProcessor:
         Args:
             position (torch.Tensor): The position tensor. Tensor shape: [N, 3]
             rotation_matrix (torch.Tensor): The rotation matrix tensor. Tensor shape: [N, 2, 2]
-
-        Returns:
-            torch.Tensor: The transformation matrix. Tensor shape: [N, 3, 3]"""
-
+        """
         transfrom_matrix = torch.ones((position.shape[0], 3, 3), device=position.device)
         transfrom_matrix[:, :2, :2] = rotation_matrix[:]
         transfrom_matrix[:, :2, 2] = position[:, :2]
@@ -294,20 +276,17 @@ class BaseStatePreProcessor:
 
     def get_linear_velocities_body(self):
         """Compute linear velocities in the body frame."""
-
         self._linear_velocities_body[0, :2] = self.rotation_matrix[0] @ self.linear_velocities_world[0, :2]
 
     def get_pose_in_local_frame(self, pose: torch.Tensor) -> torch.Tensor:
-        """Transform a pose from the world frame to the local frame. While the tensor are provided
-        in a 6DoF format, the function solves for the 3DoF pose in the local frame, assuming
-        x, y translation and yaw (z) rotation.
+        """Transform a pose from the world frame to the local frame.
+
+        While the tensor are provided in a 6DoF format, the function solves for the 3DoF pose in the local frame,
+        assuming x, y translation and yaw (z) rotation.
 
         Args:
             pose (torch.Tensor): The pose in the world frame. Tensor shape: [N, 7]
-
-        Returns:
-            torch.Tensor: The pose in the local frame. Tensor shape: [N, 7]"""
-
+        """
         if len(pose.shape) != 2:
             pose = pose.unsqueeze(0)
 
@@ -329,10 +308,7 @@ class BaseStatePreProcessor:
 
         Args:
             pose (PoseStamped): The pose in the world frame.
-
-        Returns:
-            torch.Tensor: The pose in the local frame. Tensor shape: [1, 7]"""
-
+        """
         # Get the position and quaternion
         position = torch.tensor(
             [pose.pose.position.x, pose.pose.position.y, pose.pose.position.z], device=self._device
@@ -352,14 +328,15 @@ class BaseStatePreProcessor:
         return torch.cat((position_transformed, quaternion_transformed), dim=1)
 
     def update_state_ROS(self, *args, **kwargs) -> None:
-        """Update the state processor with a new ROS message. If the state processor is primed, update the state.
-        When primed, the state can be accessed through the state variables."""
+        """Update the state processor with a new ROS message.
 
+        If the state processor is primed, update the state. When primed, the state can be accessed through the state
+        variables. In a typical use case, this is the only method that needs to be overloaded by the child class.
+        """
         raise NotImplementedError("Update state ROS method not implemented")
 
     def reset(self) -> None:
         """Reset the state processor to its initial state."""
-
         self.build_logs()
         self._last_time = None
         self.is_primed = False

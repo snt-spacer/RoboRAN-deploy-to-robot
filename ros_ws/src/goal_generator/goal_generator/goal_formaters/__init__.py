@@ -1,9 +1,11 @@
 from .base_formater import BaseFormater, BaseFormaterCfg
 
+
 class Registerable:
     def __init_subclass__(cls: BaseFormater):
-        cls_name = cls.__name__[:-8] # Remove "Formater" from the class name
+        cls_name = cls.__name__[:-8]  # Remove "Formater" from the class name
         GoalFormaterFactory.register(cls_name, cls)
+
 
 class GoalFormaterFactory:
     registry = {}
@@ -29,7 +31,8 @@ class GoalFormaterFactory:
         print("=============================================")
 
         return cls.registry[cls_name](*args, **kwargs)
-    
+
+
 from .go_to_position_formater import GoToPositionFormater
 from .go_to_pose_formater import GoToPoseFormater
 from .track_velocities_formater import TrackVelocitiesFormater

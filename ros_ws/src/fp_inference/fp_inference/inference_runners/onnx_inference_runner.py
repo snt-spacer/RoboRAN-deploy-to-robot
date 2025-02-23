@@ -26,7 +26,7 @@ class ONNXInferenceRunner(Registerable, BaseInferenceRunner):
         if self._device == "cpu":
             output = self.ort_model.run(None, dict({"obs": states.numpy()}))[0]
             output = torch.from_numpy(output)
-        #print(output)
+        # print(output)
         return output
 
     def load_model(self, path: str) -> None:

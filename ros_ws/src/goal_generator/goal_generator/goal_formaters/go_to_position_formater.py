@@ -7,9 +7,11 @@ from std_msgs.msg import Header
 from dataclasses import dataclass
 from fp_inference.state_preprocessors import BaseStatePreProcessor
 
+
 @dataclass
 class GoToPositionFormaterCfg(BaseFormaterCfg):
     pass
+
 
 class GoToPositionFormater(Registerable, BaseFormater):
     _task_cfg: GoToPositionFormaterCfg
@@ -44,7 +46,7 @@ class GoToPositionFormater(Registerable, BaseFormater):
             self._goal.header.stamp = rclpy.time.Time().to_msg()
             self._goal.header.frame_id = "map"
             self._goal.point.x = data["x"]
-            self._goal.point.y = data["y"]  
+            self._goal.point.y = data["y"]
             self._goal.point.z = data["z"]
 
         self.task_completed = True

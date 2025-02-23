@@ -9,11 +9,17 @@ import rclpy
 
 
 class OptitrackStatePreProcessor(Registerable, BaseStatePreProcessor):
-    """A class to process state information from a robot. The state processor maintains a buffer of the robot's position,
-    quaternion, and time. The state processor can compute the heading, rotation matrix, linear velocities in the world frame,
-    and linear velocities in the body frame. The state processor is primed after a certain number of steps, after which the
-    state can be accessed through the state variables.
-    All the operations are done on the GPU to ensure mimum CPU-GPU data transfer.
+    """A class to process state information from a robot.
+
+    The state processor maintains a buffer of the robot's position, quaternion, and time. The state processor can
+    compute the heading, rotation matrix, linear velocities in the world frame, and linear velocities in the body
+    frame. The state processor is primed after a certain number of steps, after which the state can be accessed
+    through the state variables. All the operations are done on the GPU to ensure mimum CPU-GPU data transfer.
+
+    The OptitrackStatePreProcessor processes pose messages from a motion capture system. It uses the pose message to
+    compute the linear and angular velocities of the robot. The velocities are computed by taking the difference
+    between the current and previous poses and dividing by the time difference. The velocities are computed in the
+    world frame.
     """
 
     def __init__(self, buffer_size: int = 30, device: str = "cuda", **kwargs):
@@ -33,9 +39,8 @@ class OptitrackStatePreProcessor(Registerable, BaseStatePreProcessor):
         self._quaternion_buffer: torch.Tensor = torch.zeros((buffer_size, 4), device=device)
         self._time_buffer: torch.Tensor = torch.zeros((buffer_size), device=device, dtype=torch.float64)
 
-    def update_angular_velocities(self):
-        """Compute angular velocities from quaternions."""
-
+    def update_angular_velocities(self) -> None:
+        """Compute angular velocities from quaternions. Updates the _angular_velocities_world variable in-place."""
         # Take time buffer extremas and convert to seconds
         dt = (self._time_buffer[-1] - self._time_buffer[0]) / self._buffer_size
         # Compute quaternion differences and divide by time to get angular velocities
@@ -58,7 +63,8 @@ class OptitrackStatePreProcessor(Registerable, BaseStatePreProcessor):
         # Update angular velocities in the world frame
         self._angular_velocities_world = torch.mean(vel, dim=1).unsqueeze(0)
 
-    def update_linear_velocities(self):
+    def update_linear_velocities(self) -> None:
+        """Compute linear velocities from positions. Updates the _linear_velocities_world variable in-place."""
         # Take time buffer extremas and convert to seconds
         dt = (self._time_buffer[-1] - self._time_buffer[0]) / self._buffer_size
         # Compute position differences and divide by time to get velocities
@@ -73,10 +79,7 @@ class OptitrackStatePreProcessor(Registerable, BaseStatePreProcessor):
         Args:
             queue_tensor (torch.Tensor): The queue tensor to append the tensor to.
             tensor (torch.Tensor): The tensor to append to the queue tensor.
-
-        Returns:
-            torch.Tensor: The updated queue tensor."""
-
+        """
         queue_tensor = torch.cat((tensor.unsqueeze(0), queue_tensor[:-1]))
         return queue_tensor
 
@@ -87,24 +90,21 @@ class OptitrackStatePreProcessor(Registerable, BaseStatePreProcessor):
         Args:
             queue_tensor (torch.Tensor): The queue tensor to append the tensor to.
             tensor (torch.Tensor): The tensor to append to the queue tensor.
-
-        Returns:
-            torch.Tensor: The updated queue tensor."""
-
+        """
         queue_tensor = torch.cat((queue_tensor[1:], tensor.unsqueeze(0)))
         return queue_tensor
 
     def update_state_ROS(self, pose: PoseStamped, **kwargs) -> None:
-        """Update the state processor with a new pose message. If the state processor is primed, update the state.
-        When primed, the state can be accessed through the state variables.
+        """Update the state processor with a new pose message.
+
+        If the state processor is primed, update the state. When primed, the state can be accessed through the
+        state variables.
 
         Args:
-            pose (PoseStamped): The pose message to update the state processor with."""
-
+            pose (PoseStamped): The pose message to update the state processor with.
+        """
         # Convert ROS message to tensors
-        position = torch.tensor(
-            [pose.pose.position.x, pose.pose.position.y, pose.pose.position.z], device=self._device
-        )
+        position = torch.tensor([pose.pose.position.x, pose.pose.position.y, pose.pose.position.z], device=self._device)
         quaternion = torch.tensor(
             [pose.pose.orientation.w, pose.pose.orientation.x, pose.pose.orientation.y, pose.pose.orientation.z],
             device=self._device,
@@ -114,7 +114,7 @@ class OptitrackStatePreProcessor(Registerable, BaseStatePreProcessor):
             clock = rclpy.clock.Clock().now().to_msg()
             self._time = clock.sec + clock.nanosec * 1e-9
         else:
-            self._time = pose.header.stamp.sec + pose.header.stamp.nanosec * 1e-9    
+            self._time = pose.header.stamp.sec + pose.header.stamp.nanosec * 1e-9
         # Update buffers
         self._position_buffer = self.append_right_tensor_queue(self._position_buffer, position)
         self._quaternion_buffer = self.append_right_tensor_queue(self._quaternion_buffer, quaternion)
@@ -136,7 +136,6 @@ class OptitrackStatePreProcessor(Registerable, BaseStatePreProcessor):
 
     def reset(self) -> None:
         """Reset the state processor to its initial state."""
-
         super().reset()
 
         # Reset state buffers

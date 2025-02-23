@@ -152,7 +152,9 @@ def process_cfg(cfg: dict) -> dict:
     return update_dict(copy.deepcopy(cfg))
 
 
-def generate_models(env: dict[str, Any], cfg: dict[str, Any], action_space: gym.spaces.Space, device: str) -> dict[str, Model]:
+def generate_models(
+    env: dict[str, Any], cfg: dict[str, Any], action_space: gym.spaces.Space, device: str
+) -> dict[str, Model]:
     """Generate model instances according to the environment specification and the given config
 
     :param env: Wrapped environment

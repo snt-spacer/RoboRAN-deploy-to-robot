@@ -10,6 +10,7 @@ import torch
 from fp_inference.state_preprocessors import BaseStatePreProcessor
 import numpy as np
 
+
 @dataclass
 class TrackVelocitiesFormaterCfg(BaseFormaterCfg):
     closed_loop: bool = True
@@ -19,6 +20,7 @@ class TrackVelocitiesFormaterCfg(BaseFormaterCfg):
     trajectory_y_offset: float = 0.0
     "Offset in y direction for the trajectory."
     target_tracking_velocity: float = 0.25
+
 
 class TrackVelocitiesFormater(Registerable, BaseFormater):
     _task_cfg: TrackVelocitiesFormaterCfg
@@ -57,7 +59,7 @@ class TrackVelocitiesFormater(Registerable, BaseFormater):
             self.generate_spiral(data["spiral"])
         else:
             raise ValueError("Invalid shape of velocities.")
-        
+
         # TODO check for frame world or local coords
         print("Hereeeeeeeee")
         self.get_velocity_vector()
@@ -107,8 +109,8 @@ class TrackVelocitiesFormater(Registerable, BaseFormater):
             self.angles = torch.roll(self.angles, -self.current_tracking_point_indx, axis=0)
             self.current_tracking_point_indx = 0
         else:
-            self.positions = self.positions[self.current_tracking_point_indx:]
-            self.angles = self.angles[self.current_tracking_point_indx:]
+            self.positions = self.positions[self.current_tracking_point_indx :]
+            self.angles = self.angles[self.current_tracking_point_indx :]
             self.current_tracking_point_indx = 0
 
         if self.positions.shape[0] == 0:

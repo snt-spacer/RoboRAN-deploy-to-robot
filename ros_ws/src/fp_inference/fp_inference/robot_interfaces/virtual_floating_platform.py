@@ -1,3 +1,4 @@
+from rclpy.qos import QoSProfile, QoSReliabilityPolicy, QoSHistoryPolicy
 from .base_robot_interface import BaseRobotInterface
 from . import Registerable
 
@@ -11,7 +12,7 @@ class VirtualFloatingPlatformInterface(Registerable, BaseRobotInterface):
     """A class to interface with the virtual floating platform.
     The interface is used to send commands to the platform and log the actions taken."""
 
-    def __init__(self, *args, device: str | None = None, **kwargs):
+    def __init__(self, *args, device: str | None = None, **kwargs) -> None:
         """Initialize the virtual floating platform interface.
 
         Args:
@@ -21,7 +22,9 @@ class VirtualFloatingPlatformInterface(Registerable, BaseRobotInterface):
 
         # Type of ROS message
         self.ROS_ACTION_TYPE = ByteMultiArray
-        self.ROS_ACTION_QUEUE_SIZE = 1
+        self.QOS_PROFILE = QoSProfile(
+            reliability=QoSReliabilityPolicy.BEST_EFFORT, history=QoSHistoryPolicy.KEEP_LAST, depth=1
+        )
 
         # Last actions is set to 0
         self._last_actions = torch.zeros((1, 8), device=self._device)
@@ -29,19 +32,15 @@ class VirtualFloatingPlatformInterface(Registerable, BaseRobotInterface):
         actions = [0] * 9  # Everything off
         self.commands.data = [value.to_bytes(1, byteorder="little") for value in actions]
 
-        self._remapping = [7, 0, 1, 2, 3, 4, 5, 6]
-
         # Action space
         self._action_space = spaces.MultiDiscrete([2] * 8)
         self._num_actions = 8
+        self._remapping = [7, 0, 1, 2, 3, 4, 5, 6]
 
     @property
     def kill_action(self) -> ByteMultiArray:
         """Return the kill action for the robot interface. This is the action called when the task is done.
-        It is meant to stop the robot and prepping it for the next task.
-
-        Returns:
-            ByteMultiArray: The kill action for the robot interface."""
+        It is meant to stop the robot and prepping it for the next task."""
 
         kill_command = ByteMultiArray()
         actions = [0] * 9
@@ -58,14 +57,12 @@ class VirtualFloatingPlatformInterface(Registerable, BaseRobotInterface):
         """Cast the actions to the robot interface format.
 
         Args:
-            actions (torch.Tensor): The actions to be casted.
+            actions (torch.Tensor): The actions to be casted into the robot interface format."""
 
-        Returns:
-            ByteMultiArray: The actions in the robot interface format."""
-
-        # Actions are expected to be either 0 or 1
+        # Step the interface when actions are casted
         super().cast_actions(actions)
-        # Ensure actions are between 0 and 1
+
+        # Actions are expected to be within 0 and 1, ensures actions are between 0 and 1
         actions = torch.clamp(actions, 0, 1)
         # Store the actions
         self._last_actions = copy.copy(actions)
@@ -75,10 +72,14 @@ class VirtualFloatingPlatformInterface(Registerable, BaseRobotInterface):
         # Return the commands
         return self.commands
 
-    def reset(self):
-        """Reset the robot interface. This is called when the task is done and the robot needs to be reset for the next task."""
+    def reset(self) -> None:
+        """Reset the robot interface. This is called when the task is done and the robot needs to be reset for the
+        next task."""
+
         super().reset()
         self._last_actions = torch.zeros((1, 8), device=self._device)
+
+        # Kill everything on reset
         actions = [0] * 9
         self.commands.data = [value.to_bytes(1, byteorder="little") for value in actions]
         self.build_logs()
