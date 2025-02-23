@@ -5,6 +5,6 @@ set -e
 colcon build --symlink-install
 source "/RANS_DeployToRobot/ros_ws/install/setup.bash"
 export ROS_DOMAIN_ID=0
-#export RMW_IMPLEMENTATION=rmw_cyclonedds_cpp
+export RMW_IMPLEMENTATION=rmw_cyclonedds_cpp
 
 exec "$@"

@@ -26,17 +26,17 @@ class KingfisherInterface(Registerable, BaseRobotInterface):
         # Last actions is set to 0
         self._last_actions = torch.zeros((1, 2), device=self._device)
         self.commands = Float32MultiArray()
-        actions = [0] * 2  # Everything off
+        actions = [0.0] * 2  # Everything off
         self.commands.data = actions
 
         # Action space
-        self._action_space = spaces.MultiDiscrete([2] * 2)
+        self._action_space = spaces.Box(low=-1, high=1, shape=(2,))
         self._num_actions = 2
 
     @property
     def kill_action(self) -> Float32MultiArray:
         kill_command = Float32MultiArray()
-        actions = [0] * 2  # Everything off
+        actions = [0.0] * 2  # Everything off
         kill_command.data = actions
         return kill_command
 
@@ -54,7 +54,8 @@ class KingfisherInterface(Registerable, BaseRobotInterface):
         # Store the actions
         self._last_actions = copy.copy(actions)
         # Convert the actions to bytes message
-        actions = actions[0].int().tolist()
+        actions = actions[0].tolist()
+        print(actions)
         self.commands.data = actions
         # Return the commands
         return self.commands
@@ -64,6 +65,6 @@ class KingfisherInterface(Registerable, BaseRobotInterface):
 
         super().reset()
         self._last_actions = torch.zeros((1, 2), device=self._device)
-        actions = [0] * 2 # Everything off
+        actions = [0.0] * 2 # Everything off
         self.commands.data = actions
         self.build_logs()

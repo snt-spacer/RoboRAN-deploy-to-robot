@@ -1,9 +1,11 @@
+from . import Registerable, BaseInferenceRunner
+
 from gymnasium import spaces
 import onnxruntime as ort
 import torch
 
 
-class ONNXInferenceRunner:
+class ONNXInferenceRunner(Registerable, BaseInferenceRunner):
     def __init__(
         self,
         checkpoint_path: str | None = None,
@@ -18,8 +20,13 @@ class ONNXInferenceRunner:
         self._provider = "CUDAExecutionProvider" if "cuda" in self._device else "CPUExecutionProvider"
         self._checkpoint_path = checkpoint_path
 
+        self.build()
+
     def act(self, states: torch.Tensor, *args, **kwargs) -> torch.Tensor:
-        output = self.ort_model.run(None, states)
+        if self._device == "cpu":
+            output = self.ort_model.run(None, dict({"obs": states.numpy()}))[0]
+            output = torch.from_numpy(output)
+        #print(output)
         return output
 
     def load_model(self, path: str) -> None:

@@ -5,6 +5,7 @@ import rclpy
 from geometry_msgs.msg import PoseStamped
 from std_msgs.msg import Header
 from dataclasses import dataclass
+from fp_inference.state_preprocessors import BaseStatePreProcessor
 
 @dataclass
 class GoToPoseFormaterCfg(BaseFormaterCfg):
@@ -15,11 +16,12 @@ class GoToPoseFormater(Registerable, BaseFormater):
 
     def __init__(
         self,
-        goals_file_path: str = "goals.yaml",
+        goals_file_path: str,
+        state_preprocessor: BaseStatePreProcessor,
         task_cfg: GoToPoseFormaterCfg = GoToPoseFormaterCfg(),
         **kwargs,
     ) -> None:
-        super().__init__(task_cfg, goals_file_path)
+        super().__init__(goals_file_path, state_preprocessor, task_cfg)
 
         self.ROS_TYPE = PoseStamped
         self.ROS_QUEUE_SIZE = 10
@@ -52,4 +54,4 @@ class GoToPoseFormater(Registerable, BaseFormater):
         self.task_completed = True
 
     def log_publish(self):
-        return f"Published goal: xyz={self._goal.pose.position.x, self._goal.pose.position.y, self._goal.pose.position.z}, xyzw={self._goal.pose.orientation.x, self._goal.pose.orientation.y, self._goal.pose.orientation.z}"
+        return f"Published goal: xyz={self._goal.pose.position.x, self._goal.pose.position.y, self._goal.pose.position.z}, xyzw={self._goal.pose.orientation.x, self._goal.pose.orientation.y, self._goal.pose.orientation.z, self._goal.pose.orientation.w}"

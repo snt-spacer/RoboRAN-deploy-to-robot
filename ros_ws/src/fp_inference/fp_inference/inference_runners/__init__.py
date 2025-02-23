@@ -20,7 +20,7 @@ class InferenceRunnerFactory:
     def create(cls, cls_name, *args, **kwargs) -> BaseInferenceRunner:
 
         if cls_name not in cls.registry:
-            raise ValueError(f"Module {cls_name} not registered.")
+            raise ValueError(f"Module {cls_name} not registered. Available modules: {cls.registry.keys()}")
 
         print("=============================================")
         print("Creating inference runner {} with args:".format(cls_name))

@@ -1,6 +1,7 @@
 import pandas as pd
 import numpy as np
 import datetime
+import copy
 import torch
 import os
 
@@ -62,7 +63,7 @@ class Logger:
         for hook in self._hooks:
             logs = hook()
             for key, value in logs.items():
-                self._logs[key].append(value)
+                self._logs[key].append(copy.deepcopy(value))
 
     def update(self) -> None:
         if self._enabled:

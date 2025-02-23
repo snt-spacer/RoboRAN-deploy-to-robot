@@ -45,7 +45,7 @@ class RLGamesInferenceRunner(BaseInferenceRunner, Registerable):
         elif isinstance(action_space, gymnasium.spaces.Tuple):
             return gym.spaces.Tuple([gym.spaces.Discrete(n.n) for n in action_space.spaces])
         elif isinstance(action_space, gymnasium.spaces.Box):
-            return gym.spaces.Box(-self._clip_actions, self._clip_actions, action_space.shape)
+            return gym.spaces.Box(-np.inf, np.inf, action_space.shape)
         elif isinstance(action_space, gymnasium.spaces.MultiDiscrete):
             return gym.spaces.Tuple([gym.spaces.Discrete(n) for n in action_space.nvec])
         
@@ -89,11 +89,11 @@ class RLGamesInferenceRunner(BaseInferenceRunner, Registerable):
 
         if isinstance(self._action_space, gym.spaces.Tuple):
             self.player = BasicPpoPlayerDiscrete(
-                self._cfg, self._observation_space, self._action_space, clip_actions=False, deterministic=True
+                self._cfg, self._observation_space, self._action_space, clip_actions=False, deterministic=True, device=self._device
             )
         else:
             self.player = BasicPpoPlayerContinuous(
-                self._cfg, self._observation_space, self._action_space, clip_actions=False, deterministic=True
+                self._cfg, self._observation_space, self._action_space, clip_actions=False, deterministic=True, device=self._device
             )
 
     def load_weigths(self, model_name: str) -> None:

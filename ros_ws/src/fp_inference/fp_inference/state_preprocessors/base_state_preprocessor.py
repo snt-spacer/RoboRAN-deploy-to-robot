@@ -91,13 +91,13 @@ class BaseStatePreProcessor:
     def update_logs(self) -> None:
         """Function used to update the logs for the state processor."""
 
-        self._logs["position_world"] = self._position
-        self._logs["quaternion_world"] = self._quaternion
-        self._logs["heading_world"] = self._heading
-        self._logs["linear_velocities_world"] = self._linear_velocities_world
-        self._logs["angular_velocities_world"] = self._angular_velocities_world
-        self._logs["linear_velocities_body"] = self._linear_velocities_body
-        self._logs["angular_velocities_body"] = self._angular_velocities_body
+        self._logs["position_world"] = self.position
+        self._logs["quaternion_world"] = self.quaternion
+        self._logs["heading_world"] = self.heading
+        self._logs["linear_velocities_world"] = self.linear_velocities_world
+        self._logs["angular_velocities_world"] = self.angular_velocities_world
+        self._logs["linear_velocities_body"] = self.linear_velocities_body
+        self._logs["angular_velocities_body"] = self.angular_velocities_body
         self._logs["ros_time"] = torch.tensor([[self._time]], device=self._device)
         if self._start_time == -1:
             self._start_time = copy.copy(self._time)

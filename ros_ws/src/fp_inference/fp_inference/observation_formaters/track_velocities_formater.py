@@ -13,6 +13,7 @@ class TrackVelocitiesTaskCfg(BaseFormaterCfg):
     enable_linear_vel: bool = True
     enable_lateral_vel: bool = True
     enable_angular_vel: bool = True
+    terminate_early: bool = False
 
 class TrackVelocitiesTask(Registerable, BaseFormater):
     _task_cfg: TrackVelocitiesTaskCfg
@@ -59,14 +60,8 @@ class TrackVelocitiesTask(Registerable, BaseFormater):
 
     def check_task_completition(self) -> None:
         """ Check if the task has been completed."""
-
-        if self._task_cfg.terminate_early:
-            cart_dist_bool = self.dist < self._task_cfg.position_tolerance #TODO: what is the cart_dist_bool?
-        else:
-            cart_dist_bool = False
-
         time_bool = self._step >= self._max_steps
-        self._task_completed = cart_dist_bool or time_bool
+        self._task_completed = time_bool
 
     def format_observation(self, actions: torch.Tensor | None = None) -> None:
         super().format_observation(actions)

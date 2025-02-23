@@ -13,23 +13,24 @@ def generate_launch_description():
                 emulate_tty=True,
                 parameters=[
                     {
-                        "task_name": "GoToPose",
+                        "task_name": "GoThroughPosition",
                         "state_preprocessor_name": "Odometry",
-                        "robot_interface_name": "VirtualFloatingPlatform",
-                        "inference_runner_name": "SKRL",
+                        "robot_interface_name": "Kingfisher",
+                        "inference_runner_name": "ONNX",
                         "enable_logging": True,
-                        "device": "cuda:0",
+                        "device": "cpu",
                         "max_steps": 500,
-                        "dt": 1 / 5.0,
-                        "nn_log_dir": "/RANS_DeployToRobot/models/skrl/Single/2025-02-22_11-51-08_ppo-discrete_torch_FloatingPlatform-GoToPose",
-                        "nn_checkpoint_path": "None",
-                        "terminate_on_completion": True,
+                        "dt": 1 / 20.0,
+                        "terminate_on_completion": False,
+                        "nn_checkpoint_path": "/RANS_DeployToRobot/models/kingfisher_direct.onnx",
+                        "nn_log_dir": "None",
                         "logs_save_path": "/RANS_DeployToRobot/ros_experiments_logs",
                     }
                 ],
                 remappings=[
-                    ("state_preprocessor_input", "/omniFPS/Robots/FloatingPlatform/odom"),
-                    ("robot_interface_commands", "/omniFPS/Robots/FloatingPlatform/thrusters/input"),
+                    ("state_preprocessor_input", "/state"),
+                    ("observation_formater_input", "/goal"),
+                    ("robot_interface_commands", "/action"),
                 ],
             )
         ]

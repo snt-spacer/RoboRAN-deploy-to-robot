@@ -184,7 +184,7 @@ class SKRLInferenceRunner(Registerable):
         # sample stochastic actions
         with torch.autocast(device_type=self._device_type, enabled=self._mixed_precision):
             actions, log_prob, outputs = self._policy.act({"states": self._state_preprocessor(states)}, role="policy")
-
+        
         return actions
 
     def ppo_rnn_act(self, states: torch.Tensor, timestep: int = 0, timesteps: int = 0, **kwargs) -> torch.Tensor:
