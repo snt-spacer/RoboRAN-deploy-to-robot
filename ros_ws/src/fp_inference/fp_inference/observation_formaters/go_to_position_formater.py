@@ -52,13 +52,13 @@ class GoToPositionFormater(Registerable, BaseFormater):
 
         # Task logs
         self._logs["distance_error"] = torch.zeros((1, 1), device=self._device)
-        self._logs["position_heading_error"] = torch.tensor((1, 1), device=self._device)
+        self._logs["target_heading_error"] = torch.tensor((1, 1), device=self._device)
         self._logs["target_position"] = torch.tensor((1, 2), device=self._device)
         self._logs["task_data"] = torch.zeros((1, 6), device=self._device)
 
         # Log specifications
         self._logs_specs["distance_error"] = [".m"]
-        self._logs_specs["position_heading_error"] = [".rad"]
+        self._logs_specs["target_heading_error"] = [".rad"]
         self._logs_specs["target_position"] = [".x.m", ".y.m"]
         self._logs_specs["task_data"] = [
             ".dist.m",
@@ -77,7 +77,7 @@ class GoToPositionFormater(Registerable, BaseFormater):
         safely modified in place.
         """
         self._logs["distance_error"] = self._dist
-        self._logs["position_heading_error"] = self._target_heading_error
+        self._logs["target_heading_error"] = self._target_heading_error
         self._logs["target_position"] = self._target_position
         self._logs["task_data"] = self._task_data
 

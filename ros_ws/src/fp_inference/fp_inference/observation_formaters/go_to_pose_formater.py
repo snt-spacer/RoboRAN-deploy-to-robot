@@ -83,7 +83,7 @@ class GoToPoseFormater(Registerable, BaseFormater):
         safely modified in place.
         """
         self._logs["distance_error"] = self._dist
-        self._logs["position_heading_error"] = self._target_heading_error
+        self._logs["target_heading_error"] = self._target_heading_error
         self._logs["heading_error"] = self._heading_error
         self._logs["target_position"] = self._target_position
         self._logs["target_heading"] = self._target_heading

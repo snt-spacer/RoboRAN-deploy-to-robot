@@ -38,7 +38,14 @@ class FloatingPlatformInterface(Registerable, BaseRobotInterface):
         self._remapping = [5, 1, 3, 7, 0, 4, 6, 2]
 
     @property
-    def pre_kill_action(self) -> Int16MultiArray:
+    def kill_action(self) -> Int16MultiArray:
+        pre_kill_command = Int16MultiArray()
+        actions = [1] + [0] * 8  # Leave bearigs on, thrusters off
+        pre_kill_command.data = actions
+        return pre_kill_command
+
+    @property
+    def kill_action(self) -> Int16MultiArray:
         """Return the kill action for the robot interface. This is the action called when the task is done.
         It is meant to stop the robot and prepping it for the next task."""
 
@@ -48,7 +55,7 @@ class FloatingPlatformInterface(Registerable, BaseRobotInterface):
         return kill_command
 
     @property
-    def kill_action(self) -> Int16MultiArray:
+    def pre_kill_action(self) -> Int16MultiArray:
         """Return the pre kill action for the robot interface. This is the action called before the kill action.
         This is meant to send an action that does not completely shuts down the robot, but preps it for the
         kill action."""
@@ -81,6 +88,7 @@ class FloatingPlatformInterface(Registerable, BaseRobotInterface):
         actions = [1] + actions[0][self._remapping].int().tolist()
         self.commands.data = actions
         # Return the commands
+        
         return self.commands
 
     def reset(self) -> None:
