@@ -39,13 +39,6 @@ class FloatingPlatformInterface(Registerable, BaseRobotInterface):
 
     @property
     def kill_action(self) -> Int16MultiArray:
-        pre_kill_command = Int16MultiArray()
-        actions = [1] + [0] * 8  # Leave bearigs on, thrusters off
-        pre_kill_command.data = actions
-        return pre_kill_command
-
-    @property
-    def kill_action(self) -> Int16MultiArray:
         """Return the kill action for the robot interface. This is the action called when the task is done.
         It is meant to stop the robot and prepping it for the next task."""
 
