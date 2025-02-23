@@ -36,14 +36,14 @@ class FloatingPlatformInterface(Registerable, BaseRobotInterface):
         self._remapping = [5, 1, 3, 7, 0, 4, 6, 2]
 
     @property
-    def kill_action(self) -> Int16MultiArray:
+    def pre_kill_action(self) -> Int16MultiArray:
         pre_kill_command = Int16MultiArray()
         actions = [1] + [0] * 8  # Leave bearigs on, thrusters off
         pre_kill_command.data = actions
         return pre_kill_command
 
     @property
-    def pre_kill_action(self) -> Int16MultiArray:
+    def kill_action(self) -> Int16MultiArray:
         kill_command = Int16MultiArray()
         actions = [0] * 9  # Everything off
         kill_command.data = actions
@@ -56,6 +56,7 @@ class FloatingPlatformInterface(Registerable, BaseRobotInterface):
         self._logs_specs["actions"] = [".t0", ".t1", ".t2", ".t3", ".t4", ".t5", ".t6", ".t7"]
 
     def cast_actions(self, actions) -> Int16MultiArray:
+        actions = torch.tensor([0,0,0,0,0,0,0,1], device=self._device).unsqueeze(0)
         # Actions are expected to be either 0 or 1
         super().cast_actions(actions)
         # Ensure actions are between 0 and 1
@@ -66,6 +67,7 @@ class FloatingPlatformInterface(Registerable, BaseRobotInterface):
         actions = [1] + actions[0][self._remapping].int().tolist()
         self.commands.data = actions
         # Return the commands
+        
         return self.commands
 
     def reset(self):
