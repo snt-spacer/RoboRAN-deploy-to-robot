@@ -35,7 +35,7 @@ class GoToPoseFormater(Registerable, BaseFormater):
         self.ROS_TYPE = PoseStamped
 
         # Task parameters
-        self._observation_space = gymnasium.spaces.Box(-np.inf, np.inf, (6 + num_actions,))
+        self._observation_space = gymnasium.spaces.Box(-np.inf, np.inf, (8 + num_actions,))
 
         self._task_data = torch.zeros((1, 8), device=self._device)
         self._target_position = torch.zeros((1, 2), device=self._device)
@@ -48,24 +48,34 @@ class GoToPoseFormater(Registerable, BaseFormater):
         self._logs["heading_error"] = torch.zeros((1, 1), device=self._device)
         self._logs["target_position"] = torch.zeros((1, 2), device=self._device)
         self._logs["target_heading"] = torch.zeros((1, 1), device=self._device)
+        self._logs["task_data"] = torch.zeros((1, 6), device=self._device)
         self._logs_specs["distance_error"] = [".m"]
         self._logs_specs["position_heading_error"] = [".rad"]
         self._logs_specs["target_position"] = [".x.m", ".y.m"]
         self._logs_specs["target_heading"] = [".rad"]
+        self._logs_specs["task_data"] = [".dist.m",
+                                         ".cos(heading_to_target_error).u",
+                                         ".sin(heading_to_target_error).u",
+                                         ".cos(heading_error).u",
+                                         ".sin(heading_error).u",
+                                         ".lin_vel_body.x.m/s",
+                                         ".lin_vel_body.y.m/s",
+                                         ".ang_vel_body.rad/s"]
 
     def update_logs(self):
-        self._logs["distance_error"] = self.dist
-        self._logs["position_heading_error"] = self.target_heading_error
-        self._logs["heading_error"] = self.heading_error
+        self._logs["distance_error"] = self._dist
+        self._logs["position_heading_error"] = self._target_heading_error
+        self._logs["heading_error"] = self._heading_error
         self._logs["target_position"] = self._target_position
         self._logs["target_heading"] = self._target_heading
+        self._logs["task_data"] = self._task_data
 
     def check_task_completion(self) -> None:
         """Check if the task has been completed."""
 
         if self._task_cfg.terminate_early:
-            cart_dist_bool = self.dist < self._task_cfg.position_tolerance
-            ang_dist_bool = torch.abs(self.target_heading_error) < self._task_cfg.heading_tolerance
+            cart_dist_bool = self._dist < self._task_cfg.position_tolerance
+            ang_dist_bool = torch.abs(self._target_heading_error) < self._task_cfg.heading_tolerance
         else:
             cart_dist_bool = False
             ang_dist_bool = False
@@ -76,27 +86,27 @@ class GoToPoseFormater(Registerable, BaseFormater):
     def format_observation(self, actions: torch.Tensor | None = None) -> None:
         super().format_observation(actions)
         # Position distance
-        self.dist = torch.linalg.norm(self._target_position - self._state_preprocessor.position[:, :2], dim=1)
+        self._dist = torch.linalg.norm(self._target_position - self._state_preprocessor.position[:, :2], dim=1)
         # Heading distance
         target_heading_w = torch.atan2(
             self._target_position[:, 1] - self._state_preprocessor.position[:, 1],
             self._target_position[:, 0] - self._state_preprocessor.position[:, 0],
         )
-        self.target_heading_error = torch.atan2(
+        self._target_heading_error = torch.atan2(
             torch.sin(target_heading_w - self._state_preprocessor.heading),
             torch.cos(target_heading_w - self._state_preprocessor.heading),
         )
         # Heading error (to the target heading)
-        self.heading_error = torch.atan2(
+        self._heading_error = torch.atan2(
             torch.sin(self._target_heading - self._state_preprocessor.heading),
             torch.cos(self._target_heading - self._state_preprocessor.heading),
         )
 
-        self._task_data[:, 0] = self.dist
-        self._task_data[:, 1] = torch.cos(self.target_heading_error)
-        self._task_data[:, 2] = torch.sin(self.target_heading_error)
-        self._task_data[:, 3] = torch.cos(self.heading_error)
-        self._task_data[:, 4] = torch.sin(self.heading_error)
+        self._task_data[:, 0] = self._dist
+        self._task_data[:, 1] = torch.cos(self._target_heading_error)
+        self._task_data[:, 2] = torch.sin(self._target_heading_error)
+        self._task_data[:, 3] = torch.cos(self._heading_error)
+        self._task_data[:, 4] = torch.sin(self._heading_error)
         self._task_data[:, 6:7] = self._state_preprocessor.linear_velocities_body[:, :2]
         self._task_data[:, 7] = self._state_preprocessor.angular_velocities_body[:, -1]
 

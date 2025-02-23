@@ -49,10 +49,10 @@ class TurtlebotInterface(Registerable, BaseRobotInterface):
         self._logs_specs["actions"] = [".left", ".right"]
 
     def cast_actions(self, actions) -> Twist:
-        # Actions are expected to be either 0 or 1
+        # Actions are expected to be within -1 and 1
         super().cast_actions(actions)
-        # Ensure actions are between 0 and 1
-        actions = torch.clamp(actions, 0, 1)
+        # Ensure actions are between -1 and 1
+        actions = torch.clamp(actions, -1, 1)
         # Store the actions
         self._last_actions = copy.copy(actions)
         # Convert the actions to bytes message

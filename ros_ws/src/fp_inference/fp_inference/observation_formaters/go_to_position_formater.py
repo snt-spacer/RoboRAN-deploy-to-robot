@@ -44,20 +44,28 @@ class GoToPositionFormater(Registerable, BaseFormater):
         self._logs["distance_error"] = torch.zeros((1, 1), device=self._device)
         self._logs["position_heading_error"] = torch.tensor((1, 1), device=self._device)
         self._logs["target_position"] = torch.tensor((1, 2), device=self._device)
+        self._logs["task_data"] = torch.zeros((1, 6), device=self._device)
         self._logs_specs["distance_error"] = [".m"]
         self._logs_specs["position_heading_error"] = [".rad"]
         self._logs_specs["target_position"] = [".x.m", ".y.m"]
+        self._logs_specs["task_data"] = [".dist.m",
+                                         ".cos(heading).u",
+                                         ".sin(heading).u",
+                                         ".lin_vel_body.x.m/s",
+                                         ".lin_vel_body.y.m/s",
+                                         ".ang_vel_body.rad/s"]
 
     def update_logs(self):
-        self._logs["distance_error"] = self.dist
-        self._logs["position_heading_error"] = self.target_heading_error
+        self._logs["distance_error"] = self._dist
+        self._logs["position_heading_error"] = self._target_heading_error
         self._logs["target_position"] = self._target_position
+        self._logs["task_data"] = self._task_data
 
     def check_task_completion(self) -> None:
         """Check if the task has been completed."""
 
         if self._task_cfg.terminate_early:
-            cart_dist_bool = self.dist < self._task_cfg.position_tolerance
+            cart_dist_bool = self._dist < self._task_cfg.position_tolerance
         else:
             cart_dist_bool = False
         time_bool = self._step >= self._max_steps
@@ -67,7 +75,7 @@ class GoToPositionFormater(Registerable, BaseFormater):
     def format_observation(self, actions: torch.Tensor | None = None) -> None:
         super().format_observation(actions)
         # Position distance
-        self.dist = torch.linalg.norm(
+        self._dist = torch.linalg.norm(
             self._target_position - self._state_preprocessor.position[:, :2], dim=1, keepdim=True
         )
         # Heading distance
@@ -76,14 +84,14 @@ class GoToPositionFormater(Registerable, BaseFormater):
             self._target_position[:, 0] - self._state_preprocessor.position[:, 0],
         )
 
-        self.target_heading_error = torch.atan2(
+        self._target_heading_error = torch.atan2(
             torch.sin(target_heading_w - self._state_preprocessor.heading),
             torch.cos(target_heading_w - self._state_preprocessor.heading),
         )
 
-        self._task_data[:, 0] = self.dist
-        self._task_data[:, 1] = torch.cos(self.target_heading_error)
-        self._task_data[:, 2] = torch.sin(self.target_heading_error)
+        self._task_data[:, 0] = self._dist
+        self._task_data[:, 1] = torch.cos(self._target_heading_error)
+        self._task_data[:, 2] = torch.sin(self._target_heading_error)
         self._task_data[:, 3:5] = self._state_preprocessor.linear_velocities_body[:, :2]
         self._task_data[:, 5] = self._state_preprocessor.angular_velocities_body[:, -1]
         self._observation = torch.cat((self._task_data, actions), dim=1)

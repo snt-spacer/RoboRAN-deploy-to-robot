@@ -93,51 +93,50 @@ class RLTaskNode(Node):
 
         self.get_logger().info("Building task...")
 
-        self.state_preprocessor = StatePreprocessorFactory.create(self._state_preprocessor_name, device=self._device)
-        self.robot_interface = RobotInterfaceFactory.create(self._robot_interface_name, device=self._device)
-        self.observation_formater = ObservationFormaterFactory.create(
-            self._task_name, self.state_preprocessor, num_actions=self.robot_interface.num_actions, max_steps = self._max_steps, device=self._device
+        self._state_preprocessor = StatePreprocessorFactory.create(self._state_preprocessor_name, device=self._device)
+        self._robot_interface = RobotInterfaceFactory.create(self._robot_interface_name, device=self._device)
+        self._observation_formater = ObservationFormaterFactory.create(
+            self._task_name, self._state_preprocessor, num_actions=self._robot_interface.num_actions, max_steps = self._max_steps, device=self._device
         )
-        self.inference_runner = InferenceRunnerFactory.create(
+        self._inference_runner = InferenceRunnerFactory.create(
             self._inference_runner_name,
             logdir=self._nn_log_dir,
-            observation_space=self.observation_formater.observation_space,
-            action_space=self.robot_interface.action_space,
+            observation_space=self._observation_formater.observation_space,
+            action_space=self._robot_interface.action_space,
             checkpoint_path=self._nn_checkpoint_path,
             device=self._device,
         )
 
         self.get_logger().info("Initializing logger...")
-        objects = [self.state_preprocessor, self.observation_formater, self.robot_interface]
-        self.data_logger = Logger(objects, self._enable_logging, self._logs_save_path)
+        objects = [self._state_preprocessor, self._observation_formater, self._robot_interface]
+        self._data_logger = Logger(objects, self._enable_logging, self._logs_save_path)
 
         self.get_logger().info("Opening ROS2 interfaces...")
         # ROS2 Subscriptions
-        qos_profile = QoSProfile(reliability=QoSReliabilityPolicy.BEST_EFFORT, history=QoSHistoryPolicy.KEEP_LAST, depth=10)
         self.create_subscription(
-            self.state_preprocessor.ROS_TYPE,
+            self._state_preprocessor.ROS_TYPE,
             "state_preprocessor_input",
-            self.state_preprocessor.ROS_CALLBACK,
-            qos_profile
+            self._state_preprocessor.ROS_CALLBACK,
+            self._state_preprocessor.QOS_PROFILE,
             #self.state_preprocessor.ROS_QUEUE_SIZE,
         )
         self.create_subscription(
-            self.observation_formater.ROS_TYPE,
+            self._observation_formater.ROS_TYPE,
             "observation_formater_input",
-            self.observation_formater.ROS_CALLBACK,
-            self.state_preprocessor.ROS_QUEUE_SIZE,
+            self._observation_formater.ROS_CALLBACK,
+            self._observation_formater.ROS_QUEUE_SIZE,
         )
         self.create_subscription(Bool, "reset_task", self.reset_task, 1)
 
         # ROS2 Publishers
         self.action_pub = self.create_publisher(
-            self.robot_interface.ROS_ACTION_TYPE,
+            self._robot_interface.ROS_ACTION_TYPE,
             "robot_interface_commands",
-            self.robot_interface.ROS_ACTION_QUEUE_SIZE,
+            self._robot_interface.ROS_ACTION_QUEUE_SIZE,
         )
-        self.task_done_pub = self.create_publisher(
+        self.task_available_pub = self.create_publisher(
             Bool,
-            "goal_done_interface",
+            "task_available_interface",
             1,
         )
         self._done_msg = Bool()
@@ -151,28 +150,38 @@ class RLTaskNode(Node):
         self.get_logger().info("Reset received. Terminating task.")
 
         # Reset all the components
-        self.state_preprocessor.reset()
-        self.observation_formater.reset()
-        self.inference_runner.reset()
-        self.robot_interface.reset()
+        self._state_preprocessor.reset()
+        self._observation_formater.reset()
+        self._inference_runner.reset()
+        self._robot_interface.reset()
+
+    def advertize_task_status(self):
+        """Advertize the task status by publishing the task status every second."""
+        advertize_rate = self.create_rate(1.0)
+        while rclpy.ok() or ~self._kill_signal:
+            self._done_msg.data = self._
+            self.task_available_pub.publish(self._done_msg)
+            rclpy.spin_once(self)
+        self.task_available_pub.publish(self._done_msg)
 
     def run_task(self):
         """Run the task by executing the main task loop."""
         self.get_logger().info("Running task...")
         # Create a rate object
         rate = self.create_rate(1.0 / self._dt)
+        self._observation_formater.is_live = True
         # Main task loop
         while rclpy.ok():
             # Get the current observation
-            self.observation_formater.format_observation(self.robot_interface.last_actions)
+            self._observation_formater.format_observation(self._robot_interface.last_actions)
             # Get the action from the inference runner
-            action = self.inference_runner.act(self.observation_formater.observation)
+            action = self._inference_runner.act(self._observation_formater.observation)
             # Publish the action
-            self.action_pub.publish(self.robot_interface.cast_actions(action))
+            self.action_pub.publish(self._robot_interface.cast_actions(action))
             # Log the data
-            self.data_logger.update()
+            self._data_logger.update()
             # Check if the task is completed
-            if (self.observation_formater.task_completed) or (not self.observation_formater.task_is_live):
+            if (self._observation_formater.task_completed) or (not self._observation_formater.task_is_live):
                 break
             # Sleep
             rate.sleep()
@@ -182,27 +191,25 @@ class RLTaskNode(Node):
         wait_rate = self.create_rate(1.0)
         while rclpy.ok():
             # Wait for a goal to be received
-            if self.observation_formater.task_is_live:
+            if self._observation_formater.task_is_live:
                 self.get_logger().info("Goal received!")
                 self.prime_state_preprocessor()
                 self.run_task()
                 self.get_logger().info("Task completed!")
                 # Reset the robot interface
-                self.robot_interface.reset()
-                self.action_pub.publish(self.robot_interface.pre_kill_action)
+                self._robot_interface.reset()
+                self.action_pub.publish(self._robot_interface.pre_kill_action)
                 # Send immobilization command
-                self.action_pub.publish(self.robot_interface.kill_action)
+                self.action_pub.publish(self._robot_interface.kill_action)
                 # Task is completed, save the logs.
-                self.data_logger.save(self._robot_interface_name, self._inference_runner_name, self._task_name)
-                # Send confirmation of task completion
-                self.task_done_pub.publish(self._done_msg)
+                self._data_logger.save(self._robot_interface_name, self._inference_runner_name, self._task_name)
                 # Returns if the task is completed
                 if self._terminate_on_completion:
                     self.get_logger().info("In run once mode. Terminating node.")
                     break
                 else:
                     self.get_logger().info("Resetting task.")
-                    self.observation_formater.reset()
+                    self._observation_formater.reset()
             self.get_logger().info("Waiting for goal...")
             wait_rate.sleep()
 
@@ -211,7 +218,7 @@ class RLTaskNode(Node):
         self.get_logger().info("Warming up the state preprocessor...")
         obs_rate = self.create_rate(1.0 / self._dt)
         while rclpy.ok():
-            if self.state_preprocessor.is_primed:
+            if self._state_preprocessor.is_primed:
                 break
             obs_rate.sleep()
         self.get_logger().info("State preprocessor is ready!")
@@ -219,9 +226,9 @@ class RLTaskNode(Node):
     def shutdown(self):
         """Shutdown the node."""
         self.get_logger().info("Unexpected shutdown! Trying to kill the robot.")
-        self.action_pub(self.robot_interface.kill_action)
+        self.action_pub(self._robot_interface.kill_action)
         self.get_logger().info("Trying to save the logs.")
-        self.data_logger.save()
+        self._data_logger.save()
         self.destroy_node()
         rclpy.shutdown()
 
@@ -235,12 +242,15 @@ def main(args=None):
 
     task_node = RLTaskNode()
 
-    thread = threading.Thread(target=rclpy.spin, args=(task_node,), daemon=True)
-    thread.start()
+    spin_thread = threading.Thread(target=rclpy.spin, args=(task_node,), daemon=True)
+    spin_thread.start()
+    task_status_thread = threading.Thread(target=task_node.advertize_task_status, daemon=True)
+    task_status_thread.start()
 
     task_node.run()
     task_node.clean_termination()
-    thread.join()
+    spin_thread.join()
+    task_status_thread.join()
 
 
 if __name__ == "__main__":
