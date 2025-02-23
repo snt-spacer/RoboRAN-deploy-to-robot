@@ -35,7 +35,6 @@ class BaseStatePreProcessor:
         self._buffer_size = buffer_size
         self.ROS_TYPE = None
         self.ROS_CALLBACK = self.update_state_ROS
-        self.ROS_QUEUE_SIZE = 1
         self.QOS_PROFILE = QoSProfile(
             reliability=QoSReliabilityPolicy.BEST_EFFORT, history=QoSHistoryPolicy.KEEP_LAST, depth=1
         )

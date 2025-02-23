@@ -1,3 +1,4 @@
+from rclpy.qos import QoSProfile, QoSReliabilityPolicy, QoSHistoryPolicy
 from gymnasium import spaces
 from typing import Any
 import torch
@@ -17,7 +18,9 @@ class BaseRobotInterface:
         # ROS parameters
         self.ROS_ACTION_TYPE = None
         self.ROS_ACTION_PUBLISHER = None
-        self.ROS_ACTION_QUEUE_SIZE = None
+        self.QOS_PROFILE = QoSProfile(
+            reliability=QoSReliabilityPolicy.BEST_EFFORT, history=QoSHistoryPolicy.KEEP_LAST, depth=1
+        )
 
         # Device selection
         if device == "auto":

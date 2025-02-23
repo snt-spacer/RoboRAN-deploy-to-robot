@@ -241,8 +241,11 @@ class RLTaskNode(Node):
 
     def shutdown(self) -> None:
         """Shut down the node."""
+        self._kill_signal = True
+
     def clean_termination(self) -> None:
         """Terminate the node."""
+        self._kill_signal = True
         self.destroy_node()
         rclpy.shutdown()
 

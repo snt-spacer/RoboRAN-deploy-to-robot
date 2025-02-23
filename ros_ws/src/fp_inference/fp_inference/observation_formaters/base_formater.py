@@ -30,7 +30,7 @@ class BaseFormater:
         self._state_preprocessor = state_preprocessor
         self.ROS_TYPE = None
         self.ROS_CALLBACK = self.update_goal_ROS
-        self.ROS_QOS_ = QoSProfile(
+        self.QOS_PROFILE = QoSProfile(
             reliability=QoSReliabilityPolicy.BEST_EFFORT, history=QoSHistoryPolicy.KEEP_LAST, depth=1
         )
 
