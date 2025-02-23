@@ -19,7 +19,7 @@ class BaseRobotInterface:
         self.ROS_ACTION_TYPE = None
         self.ROS_ACTION_PUBLISHER = None
         self.QOS_PROFILE = QoSProfile(
-            reliability=QoSReliabilityPolicy.BEST_EFFORT, history=QoSHistoryPolicy.KEEP_LAST, depth=1
+            reliability=QoSReliabilityPolicy.RELIABLE, history=QoSHistoryPolicy.KEEP_LAST, depth=1
         )
 
         # Device selection

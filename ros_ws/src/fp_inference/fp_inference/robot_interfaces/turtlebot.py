@@ -1,4 +1,3 @@
-from rclpy.qos import QoSProfile, QoSReliabilityPolicy, QoSHistoryPolicy
 from .base_robot_interface import BaseRobotInterface
 from . import Registerable
 
@@ -22,9 +21,6 @@ class TurtlebotInterface(Registerable, BaseRobotInterface):
 
         # Type of ROS message
         self.ROS_ACTION_TYPE = Twist
-        self.QOS_PROFILE = QoSProfile(
-            reliability=QoSReliabilityPolicy.BEST_EFFORT, history=QoSHistoryPolicy.KEEP_LAST, depth=1
-        )
 
         # Last actions is set to 0
         self._last_actions = torch.zeros((1, 2), device=self._device)

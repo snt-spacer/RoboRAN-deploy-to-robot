@@ -152,7 +152,7 @@ class RLTaskNode(Node):
         )
         self._done_msg = Bool()
         self._done_msg.data = True
-        self._kill_signal = False
+        self.kill_signal = False
 
         self.get_logger().info("Task built!")
 
@@ -173,11 +173,10 @@ class RLTaskNode(Node):
     def advertize_task_status(self) -> None:
         """Advertize the task status by publishing the task status every second."""
         advertize_rate = self.create_rate(1.0)
-        while rclpy.ok() or (not self._kill_signal):
-            self._done_msg.data = self._
+        while rclpy.ok() and (not self.kill_signal):
+            self._done_msg.data = not self._observation_formater.task_is_live
             self.task_available_pub.publish(self._done_msg)
             advertize_rate.sleep()
-        self.task_available_pub.publish(self._done_msg)
 
     def run_task(self) -> None:
         """Run the task by executing the main task loop."""
@@ -249,9 +248,18 @@ class RLTaskNode(Node):
         self.destroy_node()
         rclpy.shutdown()
 
+    def on_interupt(self) -> None:
+        """Handle the interrupt signal."""
+        self.get_logger().info("Received interrupt signal. Trying to save and terminating node.")
+        self._data_logger.save(self._robot_interface_name, self._inference_runner_name, self._task_name)
+        self.clean_termination()
+
 
 def main(args=None):
     """Start the ROS2 node."""
+    import signal
+    import sys
+
     rclpy.init(args=args)
 
     task_node = RLTaskNode()
@@ -261,11 +269,21 @@ def main(args=None):
     task_status_thread = threading.Thread(target=task_node.advertize_task_status, daemon=True)
     task_status_thread.start()
 
+    def signal_handler(sig, frame):
+        task_node.kill_signal = True
+        task_status_thread.join()
+        task_node.on_interupt()
+        spin_thread.join()
+        sys.exit(0)
+        
+    signal.signal(signal.SIGINT, signal_handler)
+
     task_node.run()
+
+    task_node.kill_signal = True
+    task_status_thread.join()
     task_node.clean_termination()
     spin_thread.join()
-    task_status_thread.join()
-
 
 if __name__ == "__main__":
     main()
