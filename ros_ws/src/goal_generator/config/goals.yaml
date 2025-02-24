@@ -18,7 +18,7 @@ TrackVelocities:
   frame: "World"
   shape: "circle"
   closed: true
-  target_tracking_velocity: 0.25
+  target_tracking_velocity: 1.0
   circle:
     radius: 1.0
     num_points: 3600

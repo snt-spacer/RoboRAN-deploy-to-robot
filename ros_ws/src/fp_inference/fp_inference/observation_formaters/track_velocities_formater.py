@@ -57,6 +57,8 @@ class TrackVelocitiesFormater(Registerable, BaseFormater):
         self._logs["target_lateral_vel"] = torch.zeros((1, 1), device=self._device)
         self._logs["target_angular_vel"] = torch.zeros((1, 1), device=self._device)
         self._logs["task_data"] = torch.zeros((1, 8), device=self._device)
+        self._logs["target_position"] = torch.zeros((1, 2), device=self._device)
+        self._logs["target_sin_cos_angles"] = torch.zeros((1, 2), device=self._device)
 
         self._logs_specs["target_linear_vel"] = [".m.s"]
         self._logs_specs["target_lateral_vel"] = [".m/s"]
@@ -67,6 +69,8 @@ class TrackVelocitiesFormater(Registerable, BaseFormater):
                                          ".lin_vel_body.x.m/s",
                                          ".lin_vel_body.y.m/s",
                                          ".ang_vel_body.z.rad/s"]
+        self._logs_specs["target_position"] = [".x.m", ".y.m"]
+        self._logs_specs["target_sin_cos_angles"] = [".sin", ".cos"]
 
     def update_logs(self) -> None:
         """Update the logs for the task.
@@ -78,6 +82,8 @@ class TrackVelocitiesFormater(Registerable, BaseFormater):
         self._logs["target_lateral_vel"] = self._target_lat_vel.unsqueeze(0)
         self._logs["target_angular_vel"] = self._target_ang_vel
         self._logs["task_data"] = self._task_data
+        self._logs["target_position"] = self.target_position
+        self._logs["target_sin_cos_angles"] = self.target_angle
 
     def check_task_completion(self) -> None:
         """ Check if the task has been completed."""
@@ -94,6 +100,9 @@ class TrackVelocitiesFormater(Registerable, BaseFormater):
 
         self.get_velocity_vectors()
 
+        self._target_lin_vel = torch.tensor([[1.5]], device=self._device)
+        self._target_lat_vel = torch.tensor([[0.0]], device=self._device)
+
         # linear velocity error
         err_lin_vel = self._target_lin_vel - self._state_preprocessor.linear_velocities_body[:, 0]
 
@@ -108,6 +117,8 @@ class TrackVelocitiesFormater(Registerable, BaseFormater):
         self._task_data[:, 2] = err_ang_vel * self._task_cfg.enable_angular_vel
         self._task_data[:, 3:5] = self._state_preprocessor.linear_velocities_body[:, :2]
         self._task_data[:, 5] = self._state_preprocessor.angular_velocities_body[:, -1]
+
+        print("Task data: ", self._task_data)
 
         self._observation = torch.cat((self._task_data, actions), dim=1)
         self.check_task_completion()
@@ -136,8 +147,11 @@ class TrackVelocitiesFormater(Registerable, BaseFormater):
     def get_velocity_vectors(self):
         self.get_tracking_point_indx()
         self.target_position, self.target_angle = self.get_point_for_tracking()
+        print("Target position: ", self.target_position)
         direction_vector = self.compute_direction_vector()
-        velocity_goal = direction_vector * self.target_tracking_velocity
+        velocity_goal_global = direction_vector * self.target_tracking_velocity
+        velocity_goal = (torch.linalg.pinv(self._state_preprocessor.rotation_matrix[0]) @ velocity_goal_global[0]).unsqueeze(0)
+        print("Velocity goal: ", velocity_goal)
         self._target_lin_vel = velocity_goal[:, 0]
         self._target_lat_vel = velocity_goal[:, 1]
 
@@ -173,4 +187,8 @@ class TrackVelocitiesFormater(Registerable, BaseFormater):
 
     def compute_direction_vector(self):
         diff = self.target_position - self._state_preprocessor.position[:, :2]
+        #diff = (self._state_preprocessor.rotation_matrix[0].T @ (self.target_position - self._state_preprocessor.position[:, :2]).T).T
+        #print("target_position: ", self.target_position)
+        #print("current_position: ", self._state_preprocessor.position[:, :2])
+        #print("current_position_local", diff)
         return diff / torch.linalg.norm(diff)

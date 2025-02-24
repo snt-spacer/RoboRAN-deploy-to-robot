@@ -13,7 +13,7 @@ def generate_launch_description():
                 emulate_tty=True,
                 parameters=[
                     {
-                        "task_name": "GoToPose",
+                        "task_name": "TrackVelocities",
                         "state_preprocessor_name": "Odometry",
                         "robot_interface_name": "VirtualFloatingPlatform",
                         "inference_runner_name": "SKRL",
@@ -21,7 +21,7 @@ def generate_launch_description():
                         "device": "cuda:0",
                         "max_steps": 500,
                         "dt": 1 / 5.0,
-                        "nn_log_dir": "/RANS_DeployToRobot/models/skrl/Single/2025-02-22_11-51-08_ppo-discrete_torch_FloatingPlatform-GoToPose",
+                        "nn_log_dir": "/RANS_DeployToRobot/models/skrl/Single/IROS_2025/Single/2025-02-23_21-23-42_ppo-discrete_torch_FloatingPlatform-TrackVelocities_seed-42_massRnd-False_comRnd-False_wrenchRnd-False_noisyActRnd-False_actRescalerRnd-False_obsRnd-False_",
                         "nn_checkpoint_path": "None",
                         "terminate_on_completion": True,
                         "logs_save_path": "/RANS_DeployToRobot/ros_experiments_logs",
