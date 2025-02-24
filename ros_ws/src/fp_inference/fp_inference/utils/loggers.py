@@ -96,7 +96,6 @@ class Logger:
         """Convert the buffer to a pandas DataFrame."""
         data = {}
         for name, list_tensor_log in self._logs.items():
-            print(name)
             tensor_log = torch.stack(list_tensor_log).squeeze(1)
             numpy_log = tensor_log.cpu().numpy()
             specs = self._logs_specs[name]

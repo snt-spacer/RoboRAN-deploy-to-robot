@@ -250,6 +250,7 @@ class RLTaskNode(Node):
 
     def on_interupt(self) -> None:
         """Handle the interrupt signal."""
+        self.action_pub.publish(self._robot_interface.kill_action)
         self.get_logger().info("Received interrupt signal. Trying to save and terminating node.")
         self._data_logger.save(self._robot_interface_name, self._inference_runner_name, self._task_name)
         self.clean_termination()
