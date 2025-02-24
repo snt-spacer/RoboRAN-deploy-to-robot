@@ -5,7 +5,6 @@ import rclpy
 from geometry_msgs.msg import PoseStamped
 from std_msgs.msg import Header
 from dataclasses import dataclass
-from fp_inference.state_preprocessors import BaseStatePreProcessor
 
 
 @dataclass
@@ -19,11 +18,10 @@ class GoToPoseFormater(Registerable, BaseFormater):
     def __init__(
         self,
         goals_file_path: str,
-        state_preprocessor: BaseStatePreProcessor,
         task_cfg: GoToPoseFormaterCfg = GoToPoseFormaterCfg(),
         **kwargs,
     ) -> None:
-        super().__init__(goals_file_path, state_preprocessor, task_cfg)
+        super().__init__(goals_file_path, task_cfg)
 
         self.ROS_TYPE = PoseStamped
         self.ROS_QUEUE_SIZE = 10

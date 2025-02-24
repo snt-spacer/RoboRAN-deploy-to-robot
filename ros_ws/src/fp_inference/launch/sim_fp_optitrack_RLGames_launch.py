@@ -21,8 +21,8 @@ def generate_launch_description():
                         "device": "cuda:0",
                         "max_steps": 200,
                         "dt": 1 / 15.0,
-                        "nn_log_dir": "/RANS_DeployToRobot/models/rl_games_FP_gotoposition_2025-02-19_08-47-09",
-                        "nn_checkpoint_path": "/RANS_DeployToRobot/models/rl_games_FP_gotoposition_2025-02-19_08-47-09/nn/last_FloatingPlatform-GoToPosition_ep_500_rew__197.19853_.pth",
+                        "nn_log_dir": "/home/admin51/Documents/RANS_DeployToRobot/models/skrl/Single/IROS_2025/Single/2025-02-23_15-03-17_ppo-discrete_torch_FloatingPlatform-GoToPosition_seed-42_massRnd-False_comRnd-False_wrenchRnd-False_noisyActRnd-False_actRescalerRnd-False_obsRnd-False_",
+                        "nn_checkpoint_path": "None",
                         "terminate_on_completion": True,
                         "logs_save_path": "/RANS_DeployToRobot/ros_experiments_logs",
                     }

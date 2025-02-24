@@ -1,7 +1,7 @@
 GoToPosition:
   frame: "World"
-  x: -2.5
-  y: 1.5
+  x: 1.0
+  y: 0.0
   z: 0.0
 
 GoToPose:

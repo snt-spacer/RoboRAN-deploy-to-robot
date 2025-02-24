@@ -21,7 +21,7 @@ def generate_launch_description():
                         "device": "cuda:0",
                         "max_steps": 500,
                         "dt": 1 / 5.0,
-                        "nn_log_dir": "/RANS_DeployToRobot/models/skrl/Single/2025-02-22_11-51-08_ppo-discrete_torch_FloatingPlatform-GoToPose",
+                        "nn_log_dir": "/RANS_DeployToRobot/models/skrl/Single/IROS_2025/Single/2025-02-23_15-03-17_ppo-discrete_torch_FloatingPlatform-GoToPosition_seed-42_massRnd-False_comRnd-False_wrenchRnd-False_noisyActRnd-False_actRescalerRnd-False_obsRnd-False_",
                         "nn_checkpoint_path": "None",
                         "terminate_on_completion": True,
                         "logs_save_path": "/RANS_DeployToRobot/ros_experiments_logs",
