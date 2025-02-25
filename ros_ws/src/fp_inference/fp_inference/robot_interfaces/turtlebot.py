@@ -25,12 +25,12 @@ class TurtlebotInterface(Registerable, BaseRobotInterface):
         # Last actions is set to 0
         self._last_actions = torch.zeros((1, 2), device=self._device)
         self.commands = Twist()
-        actions = [0] * 2  # Everything off
+        actions = [0.0] * 2  # Everything off
         self.commands.linear.x = actions[0]
         self.commands.angular.z = actions[1]
 
         # Action space
-        self._action_space = spaces.MultiDiscrete([2] * 2)
+        self._action_space = spaces.Box(low=-1, high=1, shape=(2,))
         self._num_actions = 2
 
     @property
@@ -40,7 +40,7 @@ class TurtlebotInterface(Registerable, BaseRobotInterface):
         kill action."""
 
         kill_command = Twist()
-        actions = [0] * 2  # Everything off
+        actions = [0.0] * 2  # Everything off
         self.commands.linear.x = actions[0]
         self.commands.angular.z = actions[1]
         return kill_command
@@ -65,9 +65,8 @@ class TurtlebotInterface(Registerable, BaseRobotInterface):
         # Store the actions
         self._last_actions = copy.copy(actions)
         # Convert the actions to bytes message
-        actions = actions[0].int().tolist()
-
-        raise NotImplementedError("Missing robot kinematics.")
+        actions = actions[0].tolist()
+        print(actions)
         self.commands.linear.x = actions[0]
         self.commands.angular.z = actions[1]
         # Return the commands
@@ -81,7 +80,7 @@ class TurtlebotInterface(Registerable, BaseRobotInterface):
         self._last_actions = torch.zeros((1, 2), device=self._device)
 
         # Kill everything on reset
-        actions = [0] * 2  # Everything off
+        actions = [0.0] * 2  # Everything off
         self.commands.linear.x = actions[0]
         self.commands.angular.z = actions[1]
         self.build_logs()
