@@ -6,7 +6,6 @@ from rclpy.node import Node
 from geometry_msgs.msg import Point
 
 from .goal_formaters import GoalFormaterFactory
-from fp_inference.state_preprocessors import StatePreprocessorFactory
 
 from rcl_interfaces.msg import ParameterDescriptor
 import time
@@ -37,30 +36,13 @@ class GoalPublisherNode(Node):
         self.declare_parameter("device", "auto", device_desc)
         self._device = self.get_parameter("device").get_parameter_value().string_value
 
-        # State preprocessor name
-        state_preprocessor_name_desc = ParameterDescriptor(
-            description='The name of the state preprocessor to be used. Currently the following state preprocessors are supported: {}".'.format(
-                ", ".join(StatePreprocessorFactory.registry.keys())
-            )
-        )
-        self.declare_parameter("state_preprocessor_name", "Optitrack", state_preprocessor_name_desc)
-        self._state_preprocessor_name = self.get_parameter("state_preprocessor_name").get_parameter_value().string_value
-
         self.task_is_live = False
 
         self.build()
 
     def build(self):
-        self.state_preprocessor = StatePreprocessorFactory.create(self._state_preprocessor_name, device=self._device)
-        self.goal_formater = GoalFormaterFactory.create(self._task_name, self._goals_file_path, self.state_preprocessor)
+        self.goal_formater = GoalFormaterFactory.create(self._task_name, self._goals_file_path)
 
-        # ROS2 Subscriptions
-        self.create_subscription(
-            self.state_preprocessor.ROS_TYPE,
-            "state_preprocessor_input",
-            self.state_preprocessor.ROS_CALLBACK,
-            self.state_preprocessor.ROS_QUEUE_SIZE,
-        )
 
         # ROS2 Publishers
         self.goal_pub = self.create_publisher(

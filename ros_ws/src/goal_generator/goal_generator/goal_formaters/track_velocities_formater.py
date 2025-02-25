@@ -7,7 +7,6 @@ from std_msgs.msg import Header
 from dataclasses import dataclass
 
 import torch
-from fp_inference.state_preprocessors import BaseStatePreProcessor
 import numpy as np
 
 
@@ -28,11 +27,10 @@ class TrackVelocitiesFormater(Registerable, BaseFormater):
     def __init__(
         self,
         goals_file_path: str,
-        state_preprocessor: BaseStatePreProcessor,
         task_cfg: TrackVelocitiesFormaterCfg = TrackVelocitiesFormaterCfg(),
         **kwargs,
     ) -> None:
-        super().__init__(goals_file_path, state_preprocessor, task_cfg)
+        super().__init__(goals_file_path, task_cfg)
 
         self.ROS_TYPE = TwistStamped
         self.ROS_QUEUE_SIZE = 10

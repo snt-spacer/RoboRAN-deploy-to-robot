@@ -1,6 +1,5 @@
 import yaml
 import torch
-from fp_inference.state_preprocessors import BaseStatePreProcessor
 
 
 class BaseFormaterCfg:
@@ -11,13 +10,11 @@ class BaseFormater:
     def __init__(
         self,
         goals_file_path: str,
-        state_preprocessor: BaseStatePreProcessor,
         task_cfg: BaseFormaterCfg = BaseFormaterCfg(),
     ) -> None:
 
         self._task_cfg = task_cfg
         self._goals_file_path = goals_file_path
-        self._state_preprocessor = state_preprocessor
         self._goal = None
         self.task_completed = False
         self.send_goal = True
