@@ -1,9 +1,7 @@
 from . import Registerable
 from . import BaseFormater, BaseFormaterCfg
 
-import rclpy
 from geometry_msgs.msg import PoseStamped
-from std_msgs.msg import Header
 from dataclasses import dataclass
 
 
@@ -21,37 +19,49 @@ class GoToPoseFormater(Registerable, BaseFormater):
         task_cfg: GoToPoseFormaterCfg = GoToPoseFormaterCfg(),
         **kwargs,
     ) -> None:
-        super().__init__(goals_file_path, task_cfg)
+        super().__init__(goals_file_path, task_cfg, **kwargs)
 
         self.ROS_TYPE = PoseStamped
-        self.ROS_QUEUE_SIZE = 10
+        self.ROS_QUEUE_SIZE = 1
 
         self.process_yaml()
 
-    def process_yaml(self):
+    def process_yaml(self) -> None:
+        # Quick format checks
+        assert "GoToPose" in self._yaml_file, "No GoToPose found in the YAML file."
+        assert len(self._yaml_file["goals"]) > 0, "No GoToPose found in the YAML file."
+        assert "frame" in self._yaml_file, "No frame found in the YAML file."
+        assert self._yaml_file["frame"].lower() in ["world", "local"], "Invalid frame coordinates type."
 
-        data = self._yaml_file["GoToPose"]
+        self._frame = self._yaml_file["frame"].lower()
+        raw_data = self._yaml_file["goals"]
+        data = []
+        for i in raw_data:
+            goal = PoseStamped()
+            goal.pose.position.x = i["position"]["x"]
+            goal.pose.position.y = i["position"]["y"]
+            goal.pose.position.z = i["position"]["z"]
+            goal.pose.orientation.x = i["orientation"]["x"]
+            goal.pose.orientation.y = i["orientation"]["y"]
+            goal.pose.orientation.z = i["orientation"]["z"]
+            goal.pose.orientation.w = i["orientation"]["w"]
+            data.append(goal)
+        self._goals = data
+        self._iterator = self.iterator()
 
-        assert data, "No data found for GoToPosition task."
-        assert data["frame"].lower() in ["world", "local"], "Invalid frame coordinates type."
+    def iterator(self):
+        for goal in self._goals:
+            yield goal
+    
+    @property
+    def goal(self) -> PoseStamped | None:
+        self._goal = next(self._iterator, None)
+        if self._goal is None:
+            self._is_done = True
+        return self._goal
 
-        frame = data["frame"]
-
-        self._goal = PoseStamped()
-
-        if frame.lower() == "world":
-            self._goal.header = Header()
-            self._goal.header.stamp = rclpy.time.Time().to_msg()
-            self._goal.header.frame_id = "map"
-            self._goal.pose.position.x = data["x"]
-            self._goal.pose.position.y = data["y"]
-            self._goal.pose.position.z = data["z"]
-            self._goal.pose.orientation.x = data["qx"]
-            self._goal.pose.orientation.y = data["qy"]
-            self._goal.pose.orientation.z = data["qz"]
-            self._goal.pose.orientation.w = data["qw"]
-
-        self.task_completed = True
-
-    def log_publish(self):
+    def log_publish(self) -> str:
         return f"Published goal: xyz={self._goal.pose.position.x, self._goal.pose.position.y, self._goal.pose.position.z}, xyzw={self._goal.pose.orientation.x, self._goal.pose.orientation.y, self._goal.pose.orientation.z, self._goal.pose.orientation.w}"
+
+    def reset(self):
+        self._iterator = self.iterator()

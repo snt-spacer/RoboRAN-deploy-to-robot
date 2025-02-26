@@ -21,33 +21,44 @@ class GoToPositionFormater(Registerable, BaseFormater):
         task_cfg: GoToPositionFormaterCfg = GoToPositionFormaterCfg(),
         **kwargs,
     ) -> None:
-        super().__init__(goals_file_path, task_cfg)
+        super().__init__(goals_file_path, task_cfg, **kwargs)
 
         self.ROS_TYPE = PointStamped
-        self.ROS_QUEUE_SIZE = 10
+        self.ROS_QUEUE_SIZE = 1
 
         self.process_yaml()
 
-    def process_yaml(self):
+    def process_yaml(self) -> None:
+        # Quick format checks
+        assert "goals" in self._yaml_file, "No goals found in the YAML file."
+        assert len(self._yaml_file["goals"]) > 0, "No goals found in the YAML file."
+        assert "frame" in self._yaml_file, "No frame found in the YAML file."
+        assert self._yaml_file["frame"].lower() in ["world", "local"], "Invalid frame coordinates type."
 
-        data = self._yaml_file["GoToPosition"]
+        self._frame = self._yaml_file["frame"].lower()
+        raw_data = self._yaml_file["goals"]
+        data = []
+        for i in raw_data:
+            goal = PointStamped()
+            goal.point.x = i["position"]["x"]
+            goal.point.y = i["position"]["y"]
+            goal.point.z = i["position"]["z"]
+            data.append(goal)
+        self._goals = data
+        self._iterator = self.iterator()
 
-        assert data, "No data found for GoToPosition task."
-        assert data["frame"].lower() in ["world", "local"], "Invalid frame coordinates type."
+    def iterator(self):
+        for goal in self._goals:
+            yield goal
 
-        frame = data["frame"]
+    def goal(self) -> PointStamped | None:
+        self._goal = next(self._iterator, None)
+        if self._goal is None:
+            self._is_done = True
+        return self._goal
 
-        self._goal = PointStamped()
-
-        if frame.lower() == "world":
-            self._goal.header = Header()
-            self._goal.header.stamp = rclpy.time.Time().to_msg()
-            self._goal.header.frame_id = "map"
-            self._goal.point.x = data["x"]
-            self._goal.point.y = data["y"]
-            self._goal.point.z = data["z"]
-
-        self.task_completed = True
-
-    def log_publish(self):
+    def log_publish(self) -> str:
         return f"Published goal: x={self._goal.point.x}, y={self._goal.point.y}, z={self._goal.point.z}"
+    
+    def reset(self):
+        self._iterator = self.iterator()

@@ -152,9 +152,9 @@ class RLTaskNode(Node):
         )
         self._done_msg = Bool()
         self._done_msg.data = True
-        self.kill_signal = False
 
         self.get_logger().info("Task built!")
+        self.create_timer(0.5, self.advertize_task_status)
 
     def reset_task(self, *args, **kwargs) -> None:
         """Reset the task.
@@ -171,12 +171,9 @@ class RLTaskNode(Node):
         self._robot_interface.reset()
 
     def advertize_task_status(self) -> None:
-        """Advertize the task status by publishing the task status every second."""
-        advertize_rate = self.create_rate(1.0)
-        while rclpy.ok() and (not self.kill_signal):
-            self._done_msg.data = not self._observation_formater.task_is_live
-            self.task_available_pub.publish(self._done_msg)
-            advertize_rate.sleep()
+        """Advertize the task status by publishing the task status twice a second."""
+        self._done_msg.data = not self._observation_formater.task_is_live
+        self.task_available_pub.publish(self._done_msg)
 
     def run_task(self) -> None:
         """Run the task by executing the main task loop."""
@@ -267,12 +264,8 @@ def main(args=None):
 
     spin_thread = threading.Thread(target=rclpy.spin, args=(task_node,), daemon=True)
     spin_thread.start()
-    task_status_thread = threading.Thread(target=task_node.advertize_task_status, daemon=True)
-    task_status_thread.start()
 
     def signal_handler(sig, frame):
-        task_node.kill_signal = True
-        task_status_thread.join()
         task_node.on_interupt()
         spin_thread.join()
         sys.exit(0)
@@ -281,8 +274,6 @@ def main(args=None):
 
     task_node.run()
 
-    task_node.kill_signal = True
-    task_status_thread.join()
     task_node.clean_termination()
     spin_thread.join()
 

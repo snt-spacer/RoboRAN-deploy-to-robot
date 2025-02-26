@@ -1,3 +1,4 @@
+from rclpy.qos import QoSProfile, QoSReliabilityPolicy, QoSHistoryPolicy
 import yaml
 import torch
 
@@ -16,17 +17,25 @@ class BaseFormater:
         self._task_cfg = task_cfg
         self._goals_file_path = goals_file_path
         self._goal = None
-        self.task_completed = False
-        self.send_goal = True
+
+        self.ROS_TYPE = None
+        self.QOS_PROFILE = QoSProfile(
+            reliability=QoSReliabilityPolicy.RELIABLE, history=QoSHistoryPolicy.KEEP_LAST, depth=1
+        )
 
         self.load_yaml()
+        self._is_done = False
 
     @property
     def goal(self):
         return self._goal
+    
+    @property
+    def is_done(self):
+        return self._is_done
 
     def load_yaml(self):
-        print("yamma: ", self._goals_file_path)
+        print("Loading YAML file:", self._goals_file_path)
         with open(self._goals_file_path, "r") as file:
             self._yaml_file = yaml.safe_load(file)
 
@@ -34,4 +43,7 @@ class BaseFormater:
         raise NotImplementedError
 
     def log_publish(self):
+        raise NotImplementedError
+    
+    def reset(self):
         raise NotImplementedError

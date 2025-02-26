@@ -9,6 +9,10 @@ import gymnasium
 import torch
 
 
+# Need to test if it loops.
+# Need to test if it allows for early termination.
+# Need to test with a single goal.
+
 @dataclass
 class GoThroughPositionsTaskCfg(BaseFormaterCfg):
     """Configuration for the go to position task."""
