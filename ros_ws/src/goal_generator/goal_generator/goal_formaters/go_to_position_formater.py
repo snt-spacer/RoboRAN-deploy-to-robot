@@ -58,7 +58,8 @@ class GoToPositionFormater(Registerable, BaseFormater):
         return self._goal
 
     def log_publish(self) -> str:
-        return f"Published goal: x={self._goal.point.x}, y={self._goal.point.y}, z={self._goal.point.z}"
+        return f"Published goal: x={self._goal.point.x}, y={self._goal.point.y}"
     
     def reset(self):
         self._iterator = self.iterator()
+        self._is_done = False
