@@ -5,7 +5,7 @@
         <General>
 
             <Interfaces>
-                <NetworkInterface name="wlp0s20f3"/>
+                <NetworkInterface name="vlan176"/>
             </Interfaces>
 
             <DontRoute>true</DontRoute>
