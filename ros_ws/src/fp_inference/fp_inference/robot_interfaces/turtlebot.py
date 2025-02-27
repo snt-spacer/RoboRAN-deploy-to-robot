@@ -63,10 +63,11 @@ class TurtlebotInterface(Registerable, BaseRobotInterface):
         # Actions are expected to be within -1 and 1, ensures actions are between -1 and 1
         actions = torch.clamp(actions, -1, 1)
         # Store the actions
+        actions = torch.clamp(actions - self._last_actions, -0.2, 0.2) + self._last_actions
         self._last_actions = copy.copy(actions)
+        
         # Convert the actions to bytes message
         actions = actions[0].tolist()
-        print(actions)
         self.commands.linear.x = actions[0] * 0.65
         self.commands.angular.z = actions[1] * torch.pi
         # Return the commands

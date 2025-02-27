@@ -29,7 +29,6 @@ class BasicBasePlayer(object):
         self.is_tensor_obses = False
 
         self.states = None
-        self.use_cuda = True
         self.batch_size = 1
         self.has_batch_dimension = False
         self.has_central_value = self.config.get("central_value_config") is not None
@@ -221,7 +220,7 @@ class BasicPpoPlayerContinuous(BasicBasePlayer):
             return current_action
 
     def restore(self, path):
-        checkpoint = torch.load(path, weights_only=False)
+        checkpoint = torch.load(path, weights_only=False, map_location=self.device)
         self.model.load_state_dict(checkpoint["model"])
         if self.normalize_input and "running_mean_std" in checkpoint:
             self.model.running_mean_std.load_state_dict(checkpoint["running_mean_std"])
@@ -338,7 +337,7 @@ class BasicPpoPlayerDiscrete(BasicBasePlayer):
                 return action.squeeze().detach()
 
     def restore(self, path):
-        checkpoint = torch.load(path, weights_only=False)
+        checkpoint = torch.load(path, weights_only=False, map_location=self.device)
         self.model.load_state_dict(checkpoint["model"])
         if self.normalize_input and "running_mean_std" in checkpoint:
             self.model.running_mean_std.load_state_dict(checkpoint["running_mean_std"])

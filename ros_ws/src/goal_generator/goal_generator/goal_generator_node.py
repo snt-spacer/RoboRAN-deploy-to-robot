@@ -36,7 +36,7 @@ class GoalPublisherNode(Node):
         self.declare_parameter("device", "auto", device_desc)
         self._device = self.get_parameter("device").get_parameter_value().string_value
 
-        self.task_is_live = False
+        self._task_is_done = False
 
         self.build()
 
@@ -45,7 +45,8 @@ class GoalPublisherNode(Node):
 
         self._a = self._prev_a = self._b = self._prev_b = 0
         self._a_was_pressed = self._a_was_released = self._b_was_pressed = self._b_was_released = False
-        self._waiting_for_a = self._waiting_for_b = False
+        self._permanent_a_press = self._permanent_a_release = self._permanent_b_press = self._permanent_b_release = False
+        self._goals_exhausted = False
 
         # ROS2 Subscriptions
         self.create_subscription(
@@ -56,7 +57,7 @@ class GoalPublisherNode(Node):
         )
         self.create_subscription(
             Joy,
-            "joystick",
+            "/joy",
             self.joy_callback,
             1
         )
@@ -69,24 +70,18 @@ class GoalPublisherNode(Node):
         )
 
     def wait_for_A_button(self):
-        self._waiting_for_a = True
         while rclpy.ok():
-            if self._a_was_pressed:
-                self._waiting_for_a = False
-                self._a = self._prev_a = 0
+            if self._permanent_a_press:
+                self._permanent_a_press = False
                 break
-    
+
     def wait_for_A_or_B_button(self) -> bool:
-        self._waiting_for_a = True
-        self._waiting_for_b = True
         while rclpy.ok():
-            if self._a_was_pressed:
-                self._waiting_for_a = False
-                self._a = self._prev_a = 0
+            if self._permanent_a_press:
+                self._permanent_a_press = False
                 return True
             if self._b_was_pressed:
-                self._waiting_for_b = False
-                self._b = self._prev_b = 0
+                self._permanent_b_press = False
                 return False
 
     def task_is_done_callback(self, msg: Bool) -> None:
@@ -97,27 +92,36 @@ class GoalPublisherNode(Node):
         # A button
         self._prev_a = copy.copy(self._a)
         self._a = self._buttons[0]
-        if self._waiting_for_a:
-            self._a_was_pressed = self._prev_a == 0 and self._a == 1
-            self._a_was_released = self._prev_a == 1 and self._a == 0
+        self._a_was_pressed = self._prev_a == 0 and self._a == 1
+        if self._a_was_pressed:
+            self._permanent_a_press = True
+        self._a_was_released = self._prev_a == 1 and self._a == 0
+        if self._a_was_released:
+            self._permanent_a_release = True
         # B button
         self._prev_b = copy.copy(self._b)
         self._b = self._buttons[1]
-        if self._waiting_for_b:
-            self._b_was_pressed = self._prev_b == 0 and self._b == 1
-            self._b_was_released = self._prev_b == 1 and self._b == 0
+        self._b_was_pressed = self._prev_b == 0 and self._b == 1
+        if self._b_was_pressed:
+            self._permanent_b_press = True
+        self._b_was_released = self._prev_b == 1 and self._b == 0
+        if self._b_was_released:
+            self._permanent_b_release = True
 
     def run(self):
         self.get_logger().info("Press 'A' to start!")
         self.wait_for_A_button()        
-        self.get_logger().info("Starting the goal publisher node...") 
+        self.get_logger().info("Starting the goal publisher node...")
         while rclpy.ok():
             self.run_goal_loop()
-            if self.goal_formater.is_done:
+            if self.goal_formater.goal is None:
+                self._goals_exhausted = True
+            if self._goals_exhausted:
                 self.get_logger().info("Exhausted all goals. Press 'B' to exit, press 'A' to restart.")
                 repeat = self.wait_for_A_or_B_button()
                 if repeat:
                     self.goal_formater.reset()
+                    self._goals_exhausted = False
                 else:
                     break
             else:
@@ -127,11 +131,15 @@ class GoalPublisherNode(Node):
 
     def run_goal_loop(self) -> None:
         rate = self.create_rate(0.5)
-        self.goal_pub.publish(self.goal_formater.goal)
-        self.get_logger().info(self.goal_formater.log_publish())
+    
+        goal_was_sent = False
         while rclpy.ok():
-            if self.goal_pub.get_subscription_count() != 0:
+            if self.goal_pub.get_subscription_count() == 0:
                 self.get_logger().info("Waiting for subscriber...")
+            if self.goal_pub.get_subscription_count() != 0 and goal_was_sent == False:
+                self.goal_pub.publish(self.goal_formater.goal)
+                self.get_logger().info(self.goal_formater.log_publish())
+                goal_was_sent = True
 
             if self._task_is_done:
                 self.get_logger().info("Task completed!")

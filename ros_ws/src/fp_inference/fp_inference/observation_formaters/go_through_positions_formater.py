@@ -18,7 +18,6 @@ class GoThroughPositionsTaskCfg(BaseFormaterCfg):
     """Configuration for the go to position task."""
 
     position_tolerance: float = 0.3
-    terminate_early: bool = False
     loop_through_goals: bool = False
     num_goals_in_obs: int = 2
 
@@ -44,7 +43,7 @@ class GoThroughPositionsFormater(Registerable, BaseFormater):
         self.ROS_TYPE = PoseArray
 
         # Task parameters
-        self._observation_space = gymnasium.spaces.Box(-np.inf, np.inf, (6 + num_actions,))
+        self._observation_space = gymnasium.spaces.Box(-np.inf, np.inf, (6 + 3 * (self._task_cfg.num_goals_in_obs - 1)+ num_actions,))
         self._task_data = torch.zeros((1, 6 + 3 * (self._task_cfg.num_goals_in_obs - 1)), device=self._device)
         self._target_position = torch.zeros((1, 2), device=self._device)
         self._target_positions = None
@@ -108,7 +107,7 @@ class GoThroughPositionsFormater(Registerable, BaseFormater):
             self._target_position[0, :] = self._target_positions[0, self._current_goal_idx, :]
 
         terminate = False
-        if self._task_cfg.terminate_early:
+        if not self._task_cfg.loop_through_goals:
             if self._num_goals_reached[0, 0] == self._target_positions.shape[1]:
                 terminate = True
 
@@ -196,6 +195,7 @@ class GoThroughPositionsFormater(Registerable, BaseFormater):
                 self._target_positions[:, i, 0] = position.position.x
                 self._target_positions[:, i, 1] = position.position.y
             self._num_goals_reached.fill_(0)
+            self._current_goal_idx = 0
 
             self._step += 1
             self._target_position[0, :] = self._target_positions[0, 0, :]

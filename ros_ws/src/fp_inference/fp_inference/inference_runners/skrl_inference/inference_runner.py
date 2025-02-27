@@ -165,6 +165,7 @@ class SKRLInferenceRunner(Registerable):
             else:
                 self.act = self.sac_act
 
+    @torch.no_grad()
     def ppo_act(self, states: torch.Tensor, timestep: int = 0, timesteps: int = 0, **kwargs) -> torch.Tensor:
         """Perform the PPO action.
 
@@ -185,7 +186,8 @@ class SKRLInferenceRunner(Registerable):
             actions, log_prob, outputs = self._policy.act({"states": self._state_preprocessor(states)}, role="policy")
 
         return actions
-
+    
+    @torch.no_grad()
     def ppo_rnn_act(self, states: torch.Tensor, timestep: int = 0, timesteps: int = 0, **kwargs) -> torch.Tensor:
         """Perform the PPO action with RNN.
 
@@ -214,6 +216,7 @@ class SKRLInferenceRunner(Registerable):
 
         return actions
 
+    @torch.no_grad()
     def sac_act(self, states: torch.Tensor, timestep: int = 0, timesteps: int = 0, **kwargs) -> torch.Tensor:
         """Perform the SAC action.
 
@@ -235,6 +238,7 @@ class SKRLInferenceRunner(Registerable):
 
         return actions
 
+    @torch.no_grad()
     def sac_rnn_act(self, states: torch.Tensor, timestep: int = 0, timesteps: int = 0, **kwargs) -> torch.Tensor:
         """Perform the SAC action with RNN.
 

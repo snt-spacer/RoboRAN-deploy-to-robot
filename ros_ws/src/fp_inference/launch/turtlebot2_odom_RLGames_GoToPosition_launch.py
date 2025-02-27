@@ -16,12 +16,13 @@ def generate_launch_description():
                         "task_name": "GoToPosition",
                         "state_preprocessor_name": "Odometry",
                         "robot_interface_name": "Turtlebot",
-                        "inference_runner_name": "SKRL",
+                        "inference_runner_name": "RLGames",
                         "enable_logging": True,
                         "device": "cpu",
-                        "max_steps": 200,
-                        "dt": 1 / 5,
-                        "nn_log_dir": "/RANS_DeployToRobot/models/2025-02-25_12-17-23_ppo_torch_Turtlebot-GoToPosition/",
+                        "max_steps": 300,
+                        "dt": 1 / 10,
+                        "nn_checkpoint_path": "/RANS_DeployToRobot/models/2025-02-26_15-13-35/nn/Turtlebot2-GoToPosition.pth",
+                        "nn_log_dir": "/RANS_DeployToRobot/models/2025-02-26_15-13-35/",
                         "terminate_on_completion": True,
                         "logs_save_path": "/RANS_DeployToRobot/ros_experiments_logs",
                     }
@@ -29,7 +30,7 @@ def generate_launch_description():
                 remappings=[
                     ("state_preprocessor_input", "/odom"),
                     ("observation_formater_input", "/goal"),
-                    ("robot_interface_commands", "/commands/velocity"),
+                    ("robot_interface_commands", "/velocity_smoother/input"),
                 ],
             )
         ]

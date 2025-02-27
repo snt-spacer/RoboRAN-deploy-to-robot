@@ -53,6 +53,7 @@ class GoThroughPositionFormater(Registerable, BaseFormater):
         for goal in self._goals:
             yield goal
 
+    @property
     def goal(self) -> PoseArray | None:
         self._goal = next(self._iterator, None)
         if self._goal is None:
