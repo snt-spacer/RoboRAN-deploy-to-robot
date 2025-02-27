@@ -19,10 +19,10 @@ def generate_launch_description():
                         "inference_runner_name": "RLGames",
                         "enable_logging": True,
                         "device": "cpu",
-                        "max_steps": 300,
+                        "max_steps": 3000,
                         "dt": 1 / 10,
-                        "nn_checkpoint_path": "/RANS_DeployToRobot/models/rl_games/2025-02-26_18-08-07_RLGames_TurtleBot2_TrackVelocities/nn/Turtlebot2-TrackVelocities.pth",
-                        "nn_log_dir": "/RANS_DeployToRobot/models/rl_games/2025-02-26_18-08-07_RLGames_TurtleBot2_TrackVelocities/",
+                        "nn_checkpoint_path": "/RANS_DeployToRobot/models/2025-02-26_18-08-07_RLGames_TurtleBot2_TrackVelocities/nn/Turtlebot2-TrackVelocities.pth",
+                        "nn_log_dir": "/RANS_DeployToRobot/models/2025-02-26_18-08-07_RLGames_TurtleBot2_TrackVelocities",
                         "terminate_on_completion": True,
                         "logs_save_path": "/RANS_DeployToRobot/ros_experiments_logs",
                     }

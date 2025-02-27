@@ -4,3 +4,4 @@ matplotlib
 pandas
 rl-games
 onnxruntime-gpu
+scipy

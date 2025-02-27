@@ -12,11 +12,14 @@ import torch
 @dataclass
 class TrackVelocitiesFormaterCfg(BaseFormaterCfg):
     enable_linear_vel: bool = True
-    enable_lateral_vel: bool = True
+    enable_lateral_vel: bool = False
     enable_angular_vel: bool = True
     terminate_early: bool = False
     closed_loop: bool = True
     "Whether the trajectory is closed (it forms a loop) or not."
+
+    max_lin_vel: float = 0.30
+    max_ang_vel: float = 0.9
 
 class TrackVelocitiesFormater(Registerable, BaseFormater):
     _task_cfg: TrackVelocitiesFormaterCfg
@@ -44,9 +47,10 @@ class TrackVelocitiesFormater(Registerable, BaseFormater):
         self._target_lat_vel_b = torch.zeros((1, 1), device=self._device)
         self._target_ang_vel = torch.zeros((1, 1), device=self._device)
         self._target_position = torch.zeros((1, 2), device=self._device)
+        self._target_heading = torch.zeros((1, 1), device=self._device)
 
         self.current_point = -1
-        self.lookhead = 0.15
+        self.lookhead = 0.25
         self.closed = self._task_cfg.closed_loop
 
     def build_logs(self) -> None:
@@ -63,6 +67,7 @@ class TrackVelocitiesFormater(Registerable, BaseFormater):
         self._logs["target_angular_vel"] = torch.zeros((1, 1), device=self._device)
         self._logs["task_data"] = torch.zeros((1, 8), device=self._device)
         self._logs["target_position"] = torch.zeros((1, 2), device=self._device)
+        self._logs["target_heading"] = torch.zeros((1, 1), device=self._device)
 
         self._logs_specs["target_linear_vel"] = [".m.s"]
         self._logs_specs["target_lateral_vel"] = [".m/s"]
@@ -74,6 +79,7 @@ class TrackVelocitiesFormater(Registerable, BaseFormater):
                                          ".lin_vel_body.y.m/s",
                                          ".ang_vel_body.z.rad/s"]
         self._logs_specs["target_position"] = [".x.m", ".y.m"]
+        self._logs_specs["target_heading"] = [".rad"]
 
     def update_logs(self) -> None:
         """Update the logs for the task.
@@ -81,8 +87,8 @@ class TrackVelocitiesFormater(Registerable, BaseFormater):
         of the task. The logger performs a deep copy of the logs after this method is called, so the logs can be
         safely modified in place.
         """
-        self._logs["target_linear_vel"] = self._target_lin_vel_b.unsqueeze(0)
-        self._logs["target_lateral_vel"] = self._target_lat_vel_b.unsqueeze(0)
+        self._logs["target_linear_vel"] = self._target_lin_vel_b
+        self._logs["target_lateral_vel"] = self._target_lat_vel_b
         self._logs["target_angular_vel"] = self._target_ang_vel
         self._logs["task_data"] = self._task_data
         self._logs["target_position"] = self._target_position
@@ -101,7 +107,7 @@ class TrackVelocitiesFormater(Registerable, BaseFormater):
         super().format_observation(actions)
 
         # Get velocities vectors
-        distances = torch.linalg.norm(self.target_positions - self._state_preprocessor.position[:, :2])
+        distances = torch.linalg.norm(self.target_positions - self._state_preprocessor.position[:, :2], dim=1)
         if self.current_point == -1:
             self.current_point = 0
         else:
@@ -109,21 +115,25 @@ class TrackVelocitiesFormater(Registerable, BaseFormater):
             if len(indices) > 0:
                 indices = indices[indices < 60]
                 if len(indices) > 0:
-                    self.current_point = np.max(indices)
+                    self.current_point = torch.max(indices).item()
 
-        self.target_position = self.target_positions[self.current_point]
-        # print("Current point: ", self.target_position)
-
-        target_lin_vel_b = (self._state_preprocessor.rotation_matrix @ (self.target_positions[self.current_point] - self._state_preprocessor.position[:, :2]).T).unsqueeze(0).T
-        self._target_lin_vel_b = target_lin_vel_b[:, 0]
-        self._target_lat_vel_b = target_lin_vel_b[:, 1]
+        self._target_position = self.target_positions[self.current_point].unsqueeze(0)
         
-
-        # print("target lin vel", self._target_lin_vel_b)
-        # print("target lat vel", self._target_lat_vel_b)
-        # print("global vel", (self.target_positions[self.current_point] - self._state_preprocessor.position[:, :2]))
-        # exit(0)
+        target_lin_vel_b = self._state_preprocessor.rotation_matrix[0] @ (self._target_position[0] - self._state_preprocessor.position[0, :2]).T
         
+        norm = torch.linalg.norm(target_lin_vel_b)
+        if norm < 1e-3:
+            target_lin_vel_b.fill_(0)
+        else:
+            target_lin_vel_b = target_lin_vel_b / norm
+
+        target_ang_vel_b = self._target_heading = torch.arctan2(target_lin_vel_b[1], target_lin_vel_b[0])
+        
+        self._target_lin_vel_b[:,0] = target_lin_vel_b[0] * self._task_cfg.max_lin_vel
+        self._target_lat_vel_b[:,0] = 0 #target_lin_vel_b[:, 1]
+    
+        self._target_ang_vel[:,0] = torch.clamp(target_ang_vel_b / torch.pi * self._task_cfg.max_ang_vel, -0.9, 0.9)
+     
         self.roll_trajectory()
 
         # linear velocity error
@@ -140,8 +150,6 @@ class TrackVelocitiesFormater(Registerable, BaseFormater):
         self._task_data[:, 2] = err_ang_vel * self._task_cfg.enable_angular_vel
         self._task_data[:, 3:5] = self._state_preprocessor.linear_velocities_body[:, :2]
         self._task_data[:, 5] = self._state_preprocessor.angular_velocities_body[:, -1]
-
-        print("Task data: ", self._task_data)
 
         self._observation = torch.cat((self._task_data, actions), dim=1)
         self.check_task_completion()
@@ -168,7 +176,7 @@ class TrackVelocitiesFormater(Registerable, BaseFormater):
 
     def roll_trajectory(self) -> None:
         if self.closed:
-            self.target_positions = torch.roll(self.target_positions, -self.current_point, dims=0)
+            self.target_positions = torch.roll(self.target_positions, shifts=-self.current_point, dims=0)
             self.current_point = 0
         else:
             self.target_positions = self.target_positions[self.current_point:]

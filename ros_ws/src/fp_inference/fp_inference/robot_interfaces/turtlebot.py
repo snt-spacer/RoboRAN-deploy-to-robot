@@ -69,7 +69,9 @@ class TurtlebotInterface(Registerable, BaseRobotInterface):
         # Convert the actions to bytes message
         actions = actions[0].tolist()
         self.commands.linear.x = actions[0] * 0.65
-        self.commands.angular.z = actions[1] * torch.pi
+        self.commands.angular.z = actions[1] * 0.9
+
+        print("Actions tb", self.commands)
         # Return the commands
         return self.commands
 
