@@ -51,6 +51,7 @@ class BaseStatePreProcessor:
         self._heading: torch.Tensor = torch.zeros((1, 1), device=self._device)
         self._quaternion: torch.Tensor = torch.zeros((1, 4), device=self._device)
         self._rotation_matrix: torch.Tensor = torch.zeros((1, 2, 2), device=self._device)
+        self._inverse_rotation_matrix: torch.Tensor = torch.zeros((1, 2, 2), device=self._device)
         self._tranformation_matrix: torch.Tensor = torch.zeros((1, 3, 3), device=self._device)
         self._linear_velocities_world: torch.Tensor = torch.zeros((1, 3), device=self._device)
         self._angular_velocities_world: torch.Tensor = torch.zeros((1, 3), device=self._device)
@@ -60,6 +61,7 @@ class BaseStatePreProcessor:
         # Lazy updates of state variables
         self._step_heading: int = 0
         self._step_rotation_matrix: int = 0
+        self._step_inverse_rotation_matrix: int = 0
         self._step_linear_velocity_body: int = 0
         self._step_angular_velocity_body: int = 0
         self._step_logs: int = 0
@@ -187,6 +189,17 @@ class BaseStatePreProcessor:
             # Update the step count for lazy updates
             self._step_rotation_matrix = copy.copy(self._step)
         return self._rotation_matrix
+    
+    @property
+    def inverse_rotation_matrix(self) -> torch.Tensor | None:
+        """The current inverse rotation matrix. The format is a 2x2 matrix.
+        
+        If the inverse rotation matrix is not available, return None.
+        """
+        if (self.rotation_matrix is not None) and (self._step_inverse_rotation_matrix != self._step):
+            self._inverse_rotation_matrix[0] = self.rotation_matrix[0].T
+            self._step_inverse_rotation_matrix = copy.copy(self._step)
+        return self._inverse_rotation_matrix
 
     @property
     def linear_velocities_world(self) -> torch.Tensor | None:
@@ -348,6 +361,7 @@ class BaseStatePreProcessor:
         self._heading: torch.Tensor = torch.zeros((1, 1), device=self._device)
         self._quaternion: torch.Tensor = torch.zeros((1, 4), device=self._device)
         self._rotation_matrix: torch.Tensor = torch.zeros((1, 2, 2), device=self._device)
+        self._inverse_rotation_matrix: torch.Tensor = torch.zeros((1, 2, 2), device=self._device)
         self._tranformation_matrix: torch.Tensor = torch.zeros((1, 3, 3), device=self._device)
         self._linear_velocities_world: torch.Tensor = torch.zeros((1, 3), device=self._device)
         self._angular_velocities_world: torch.Tensor = torch.zeros((1, 3), device=self._device)
@@ -357,6 +371,7 @@ class BaseStatePreProcessor:
         # Reset lazy updates
         self._step_heading = 0
         self._step_rotation_matrix = 0
+        self._step_inverse_rotation_matrix = 0
         self._step_linear_velocity_body = 0
         self._step_angular_velocity_body = 0
         self._step_logs = 0
