@@ -2,7 +2,7 @@ from . import Registerable
 from . import BaseFormater, BaseFormaterCfg
 from fp_inference.state_preprocessors import BaseStatePreProcessor
 
-from geometry_msgs.msg import PoseStamped
+from geometry_msgs.msg import PoseArray
 from dataclasses import dataclass
 import numpy as np
 import gymnasium
@@ -33,7 +33,7 @@ class TrackVelocitiesFormater(Registerable, BaseFormater):
         """Task formatter for the track velocities task."""
         super().__init__(state_preprocessor, device, max_steps, task_cfg)
 
-        self.ROS_TYPE = PoseStamped
+        self.ROS_TYPE = PoseArray
         self.current_tracking_point_indx = -1
         self.close_loop = self._task_cfg.closed_loop
 
@@ -43,6 +43,11 @@ class TrackVelocitiesFormater(Registerable, BaseFormater):
         self._target_lin_vel_b = torch.zeros((1, 1), device=self._device)
         self._target_lat_vel_b = torch.zeros((1, 1), device=self._device)
         self._target_ang_vel = torch.zeros((1, 1), device=self._device)
+        self._target_position = torch.zeros((1, 2), device=self._device)
+
+        self.current_point = -1
+        self.lookhead = 0.15
+        self.closed = self._task_cfg.closed_loop
 
     def build_logs(self) -> None:
         """Build the logs for the task.
@@ -80,7 +85,7 @@ class TrackVelocitiesFormater(Registerable, BaseFormater):
         self._logs["target_lateral_vel"] = self._target_lat_vel_b.unsqueeze(0)
         self._logs["target_angular_vel"] = self._target_ang_vel
         self._logs["task_data"] = self._task_data
-        self._logs["target_position"] = self.target_positions
+        self._logs["target_position"] = self._target_position
 
     def check_task_completion(self) -> None:
         """ Check if the task has been completed."""
@@ -96,16 +101,30 @@ class TrackVelocitiesFormater(Registerable, BaseFormater):
         super().format_observation(actions)
 
         # Get velocities vectors
-        print("matrix shape", self._state_preprocessor.inverse_rotation_matrix.shape)
-        print("positions shape", self.target_positions.shape)
-        print("state_preprocessor position shape", self._state_preprocessor.position.shape)
+        distances = torch.linalg.norm(self.target_positions - self._state_preprocessor.position[:, :2])
+        if self.current_point == -1:
+            self.current_point = 0
+        else:
+            indices = torch.where(distances < self.lookhead)[0]
+            if len(indices) > 0:
+                indices = indices[indices < 60]
+                if len(indices) > 0:
+                    self.current_point = np.max(indices)
 
-        target_lin_vel_b = self._state_preprocessor.inverse_rotation_matrix @ (self.target_positions - self._state_preprocessor.position[:, :2]).T
+        self.target_position = self.target_positions[self.current_point]
+        # print("Current point: ", self.target_position)
+
+        target_lin_vel_b = (self._state_preprocessor.rotation_matrix @ (self.target_positions[self.current_point] - self._state_preprocessor.position[:, :2]).T).unsqueeze(0).T
         self._target_lin_vel_b = target_lin_vel_b[:, 0]
         self._target_lat_vel_b = target_lin_vel_b[:, 1]
+        
 
-        print("target_lin_vel_b", self._target_lin_vel_b.shape)
-        print("target_lat_vel_b", self._target_lat_vel_b.shape)
+        # print("target lin vel", self._target_lin_vel_b)
+        # print("target lat vel", self._target_lat_vel_b)
+        # print("global vel", (self.target_positions[self.current_point] - self._state_preprocessor.position[:, :2]))
+        # exit(0)
+        
+        self.roll_trajectory()
 
         # linear velocity error
         err_lin_vel = self._target_lin_vel_b - self._state_preprocessor.linear_velocities_body[:, 0]
@@ -127,11 +146,12 @@ class TrackVelocitiesFormater(Registerable, BaseFormater):
         self._observation = torch.cat((self._task_data, actions), dim=1)
         self.check_task_completion()
 
-    def update_goal_ROS(self, ros_data: PoseStamped | None = None, **kwargs) -> None:
+    def update_goal_ROS(self, ros_data: PoseArray | None = None, **kwargs) -> None:
         if ros_data is not None:
             print("Received new target velocities")
             self._step += 1
-            self.target_positions = torch.tensor([ros_data.pose.position.x, ros_data.pose.position.y], device=self._device).unsqueeze(0)
+            data = [[pose.position.x, pose.position.y] for pose in ros_data.poses]
+            self.target_positions = torch.tensor(data, device=self._device)
             # A goal has been received the task is live
             self._task_is_live = True
             # Reset the number of steps to 0 when a new goal is received
@@ -144,3 +164,14 @@ class TrackVelocitiesFormater(Registerable, BaseFormater):
         self._target_lat_vel_b.fill_(0)
         self._target_ang_vel.fill_(0)
         self._task_data.fill_(0)
+
+
+    def roll_trajectory(self) -> None:
+        if self.closed:
+            self.target_positions = torch.roll(self.target_positions, -self.current_point, dims=0)
+            self.current_point = 0
+        else:
+            self.target_positions = self.target_positions[self.current_point:]
+            self.current_point = 0 
+        if self.target_positions.shape[0] <= 1:
+            self.is_done = True
