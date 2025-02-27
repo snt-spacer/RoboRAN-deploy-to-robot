@@ -9,9 +9,6 @@ class BaseTrajectoryCfg:
     position_offset: tuple[float, float] = (0.0, 0.0)
     angle_offset: float = 0.0 
 
-    def __init__(self):
-        pass
-
 class BaseTrajectory:
     def __init__(self, cfg: BaseTrajectoryCfg) -> None:
         self._cfg = cfg

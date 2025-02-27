@@ -29,6 +29,13 @@ class GoalPublisherNode(Node):
         self.declare_parameter("goals_file_path", "", goals_file_path_desc)
         self._goals_file_path = self.get_parameter("goals_file_path").get_parameter_value().string_value
 
+        # Wait for task timeout
+        wait_for_task_timeout_desc = ParameterDescriptor(
+            description="The time to wait for the task to be completed before exiting."
+        )
+        self.declare_parameter("wait_for_task_timeout", 600, wait_for_task_timeout_desc)
+        self._wait_for_task_timeout = self.get_parameter("wait_for_task_timeout").get_parameter_value().integer_value
+
         # Device
         device_desc = ParameterDescriptor(
             description='The device to be used for the task. If set to "auto", the device will be selected automatically.'

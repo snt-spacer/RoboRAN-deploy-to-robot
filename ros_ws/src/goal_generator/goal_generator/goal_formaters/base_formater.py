@@ -1,6 +1,5 @@
 from rclpy.qos import QoSProfile, QoSReliabilityPolicy, QoSHistoryPolicy
 import yaml
-import torch
 
 
 class BaseFormaterCfg:
