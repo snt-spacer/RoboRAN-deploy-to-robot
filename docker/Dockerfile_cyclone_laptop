@@ -1,0 +1,10 @@
+# Use ROS2 Humble base image
+FROM rans-ros-deploy-cyclone:latest
+
+RUN echo "export CYCLONEDDS_URI=/cyclonedds_cfg.xml" >> ~/.bashrc
+
+COPY ./cyclonedds_cfg.xml / 
+COPY ./ros_entrypoint_cyclone_laptop.sh /
+
+ENTRYPOINT ["/ros_entrypoint_cyclone.sh"]
+CMD ["bash"]

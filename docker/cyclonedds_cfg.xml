@@ -1,0 +1,22 @@
+<CycloneDDS>
+
+    <Domain>
+
+        <General>
+
+            <Interfaces>
+                <NetworkInterface name="vlan176"/>
+            </Interfaces>
+
+            <DontRoute>true</DontRoute>
+            <!-- <AllowMulticast>false</AllowMulticast> -->
+
+        </General>
+        <Discovery>
+            <ParticipantIndex>auto</ParticipantIndex>
+            <MaxAutoParticipantIndex>1000</MaxAutoParticipantIndex>
+        </Discovery>
+    </Domain>
+
+
+</CycloneDDS>

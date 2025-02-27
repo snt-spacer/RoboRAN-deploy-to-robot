@@ -29,5 +29,12 @@ exp_logs/
 .ipynb_checkpoints
 
 # ROS-related
+build/
+install/
+log/
 log/
 models/
+
+.vscode/
+
+logs/

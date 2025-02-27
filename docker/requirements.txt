@@ -1,0 +1,6 @@
+numpy
+torch
+matplotlib
+pandas
+rl-games
+onnxruntime-gpu

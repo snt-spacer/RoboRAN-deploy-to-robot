@@ -1,0 +1,15 @@
+# Use ROS2 Humble base image
+FROM rans-ros-deploy:latest
+
+
+# Install necessary dependencies
+RUN apt-get update && apt-get install -y \
+    ros-humble-rmw-cyclonedds-cpp \
+    && rm -rf /var/lib/apt/lists/*
+    
+RUN echo "export RMW_IMPLEMENTATION=rmw_cyclonedds_cpp" >> ~/.bashrc
+    
+COPY ./ros_entrypoint_cyclone.sh /
+
+ENTRYPOINT ["/ros_entrypoint_cyclone.sh"]
+CMD ["bash"]
