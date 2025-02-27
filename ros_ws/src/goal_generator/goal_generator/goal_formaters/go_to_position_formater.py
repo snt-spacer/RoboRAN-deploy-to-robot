@@ -24,7 +24,6 @@ class GoToPositionFormater(Registerable, BaseFormater):
         super().__init__(goals_file_path, task_cfg, **kwargs)
 
         self.ROS_TYPE = PointStamped
-        self.ROS_QUEUE_SIZE = 1
 
         self.process_yaml()
 
@@ -33,7 +32,7 @@ class GoToPositionFormater(Registerable, BaseFormater):
         assert "goals" in self._yaml_file, "No goals found in the YAML file."
         assert len(self._yaml_file["goals"]) > 0, "No goals found in the YAML file."
         assert "frame" in self._yaml_file, "No frame found in the YAML file."
-        assert self._yaml_file["frame"].lower() in ["world", "local"], "Invalid frame coordinates type."
+        assert self._yaml_file["frame"].lower() in ["global", "local"], "Invalid frame coordinates type."
 
         self._frame = self._yaml_file["frame"].lower()
         raw_data = self._yaml_file["goals"]
