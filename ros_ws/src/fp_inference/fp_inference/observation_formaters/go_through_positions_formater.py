@@ -108,7 +108,7 @@ class GoThroughPositionsFormater(Registerable, BaseFormater):
 
         terminate = False
         if not self._task_cfg.loop_through_goals:
-            if self._num_goals_reached[0, 0] == self._target_positions.shape[1]:
+            if self._num_goals_reached[0, 0] >= self._target_positions.shape[1]:
                 terminate = True
 
         time_bool = self._step >= self._max_steps

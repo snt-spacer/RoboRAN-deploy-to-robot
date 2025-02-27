@@ -13,23 +13,23 @@ def generate_launch_description():
                 emulate_tty=True,
                 parameters=[
                     {
-                        "task_name": "GoToPosition",
+                        "task_name": "GoThroughPositions",
                         "state_preprocessor_name": "Odometry",
                         "robot_interface_name": "Kingfisher",
                         "inference_runner_name": "RLGames",
                         "enable_logging": True,
                         "device": "cpu",
-                        "max_steps": 50,
+                        "max_steps": 5000,
                         "dt": 1 / 12.5,
                         "terminate_on_completion": False,
-                        "nn_checkpoint_path": "/RANS_DeployToRobot/models/RLGames_kingfisher_GoToPosition_2025-02-21_16-02-37/nn/kingfisher_direct.pth",
-                        "nn_log_dir": "/RANS_DeployToRobot/models/RLGames_kingfisher_GoToPosition_2025-02-21_16-02-37",
+                        "nn_checkpoint_path": "/RANS_DeployToRobot/models/RLGames/GoThroughPositions/2025-02-26_08-47-06/nn/kingfisher_direct.pth",
+                        "nn_log_dir": "/RANS_DeployToRobot/models/RLGames/GoThroughPositions/2025-02-26_08-47-06",
                         "logs_save_path": "/RANS_DeployToRobot/ros_experiments_logs",
                     }
                 ],
                 remappings=[
                     ("state_preprocessor_input", "/state"),
-                    ("observation_formater_input", "/goal"),
+                    ("observation_formater_input", "/goals"),
                     ("robot_interface_commands", "/action"),
                 ],
             )
