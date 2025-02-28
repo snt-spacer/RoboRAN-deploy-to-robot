@@ -18,7 +18,7 @@ class TrackVelocitiesFormaterCfg(BaseFormaterCfg):
     closed_loop: bool = True
     "Whether the trajectory is closed (it forms a loop) or not."
 
-    max_lin_vel: float = 0.30
+    max_lin_vel: float = 0.50
     max_ang_vel: float = 0.9
 
 class TrackVelocitiesFormater(Registerable, BaseFormater):
@@ -50,7 +50,7 @@ class TrackVelocitiesFormater(Registerable, BaseFormater):
         self._target_heading = torch.zeros((1, 1), device=self._device)
 
         self.current_point = -1
-        self.lookhead = 0.25
+        self.lookhead = 0.15
         self.closed = self._task_cfg.closed_loop
 
     def build_logs(self) -> None:
@@ -132,7 +132,7 @@ class TrackVelocitiesFormater(Registerable, BaseFormater):
         self._target_lin_vel_b[:,0] = target_lin_vel_b[0] * self._task_cfg.max_lin_vel
         self._target_lat_vel_b[:,0] = 0 #target_lin_vel_b[:, 1]
     
-        self._target_ang_vel[:,0] = torch.clamp(target_ang_vel_b / torch.pi * self._task_cfg.max_ang_vel, -0.9, 0.9)
+        self._target_ang_vel[:,0] = torch.clamp(target_ang_vel_b / torch.pi * self._task_cfg.max_ang_vel * 2, -0.9, 0.9)
      
         self.roll_trajectory()
 

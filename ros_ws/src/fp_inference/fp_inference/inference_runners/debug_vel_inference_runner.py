@@ -56,7 +56,9 @@ class DebugVelInferenceRunner(Registerable, BaseInferenceRunner):
         Returns:
             The actions to take."""
 
-        return torch.tensor([state[0,0]/0.65, state[0,2]/0.9])
+        print(state[0])
+
+        return torch.tensor([state[0,0] + state[0,3], state[0,2] + state[0,5]])
 
     def build(self) -> None:
         """Build the runner. Generate the models, preprocessor, and the actor.

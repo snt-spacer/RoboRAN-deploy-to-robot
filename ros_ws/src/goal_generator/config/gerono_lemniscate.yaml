@@ -1,0 +1,4 @@
+trajectory:
+  name: "GeronoLemniscate"
+  cfg:
+    a: 1.5
