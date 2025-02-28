@@ -123,7 +123,7 @@ class GoalPublisherNode(Node):
             T = np.array([self._local_pose.pose.position.x, self._local_pose.pose.position.y, self._local_pose.pose.position.z])
             # Transform the point
             point = np.array([point.point.x, point.point.y, point.point.z])
-            point = R.inv().apply(point - T)
+            point = R.apply(point) + T
             point = PointStamped()
             point.point.x = point[0]
             point.point.y = point[1]
@@ -137,11 +137,10 @@ class GoalPublisherNode(Node):
             # Build the transform
             q = [self._local_pose.pose.orientation.x, self._local_pose.pose.orientation.y, self._local_pose.pose.orientation.z, self._local_pose.pose.orientation.w]
             R = Rotation.from_quat(q,scalar_first=False)
-            R_inv = R.inv()
             T = np.array([self._local_pose.pose.position.x, self._local_pose.pose.position.y, self._local_pose.pose.position.z])
             # Transform the pose
             point = np.array([pose.pose.position.x, pose.pose.position.y, pose.pose.position.z])
-            point = R.apply(point - T, inverse=True)
+            point = R.apply(point) + T
             
             pose = PoseStamped()
             pose.pose.position.x = pose[0]
@@ -149,7 +148,7 @@ class GoalPublisherNode(Node):
             pose.pose.position.z = pose[2]
             q = [pose.orientation.x, pose.orientation.y, pose.orientation.z, pose.orientation.w]
             R2 = Rotation.from_quat(q, scalar_first=False).as_matrix()
-            R2 = R_inv.as_matrix() @ R2
+            R2 = R.as_matrix() @ R2
             q = Rotation.from_matrix(R2).as_quat()
             pose.pose.orientation.x = q[0]
             pose.pose.orientation.y = q[1]
@@ -165,26 +164,26 @@ class GoalPublisherNode(Node):
             q = [self._local_pose.pose.orientation.x, self._local_pose.pose.orientation.y, self._local_pose.pose.orientation.z, self._local_pose.pose.orientation.w]
             R = Rotation.from_quat(q,scalar_first=False)
             T = np.array([self._local_pose.pose.position.x, self._local_pose.pose.position.y, self._local_pose.pose.position.z])
-            R_inv = R.inv()
             # Transform the pose array
             new_pose_array = PoseArray()
             new_pose_array.header = pose_array.header
+            new_pose_array.header.frame_id = self._global_frame
             for pose in pose_array.poses:
                 new_pose = Pose()
                 point = np.array([pose.position.x, pose.position.y, pose.position.z])
-                point = R_inv.apply(point - T)
+                point = R.apply(point) + T
                 new_pose.position.x = point[0]
                 new_pose.position.y = point[1]
                 new_pose.position.z = point[2]
                 q = [pose.orientation.x, pose.orientation.y, pose.orientation.z, pose.orientation.w]
                 R2 = Rotation.from_quat(q, scalar_first=False).as_matrix()
-                R2 = R_inv.as_matrix() @ R2
+                R2 = R.as_matrix() @ R2
                 q = Rotation.from_matrix(R2).as_quat()
                 new_pose.orientation.x = q[0]
                 new_pose.orientation.y = q[1]
                 new_pose.orientation.z = q[2]
                 new_pose.orientation.w = q[3]
-                new_pose_array.poses.append(pose)
+                new_pose_array.poses.append(new_pose)
             return new_pose_array
         else:
             return pose_array

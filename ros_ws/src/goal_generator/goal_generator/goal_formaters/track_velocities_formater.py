@@ -36,14 +36,11 @@ class TrackVelocitiesFormater(Registerable, BaseFormater):
         assert "trajectory" in self._yaml_file, "No trajectory found in the YAML file."
         assert "name" in self._yaml_file["trajectory"], "No trajectory name found in the YAML file."
         assert "cfg" in self._yaml_file["trajectory"], "No trajectory configuration found in the YAML file."
-        assert "frame" in self._yaml_file, "No frame found in the YAML file."
-        assert self._yaml_file["frame"].lower() in ["global", "local"], "Invalid frame coordinates type."
 
         self._trajectory_cfg = TrajectoryCfgFactory.create(
             self._yaml_file["trajectory"]["name"], **self._yaml_file["trajectory"]["cfg"]
         )
         self._trajectory_gen = TrajectoryFactory.create(self._yaml_file["trajectory"]["name"], self._trajectory_cfg)
-        self._frame = self._yaml_file["frame"].lower()
 
     def generate_pose_array(self):
         positions, angles = self._trajectory_gen.trajectory

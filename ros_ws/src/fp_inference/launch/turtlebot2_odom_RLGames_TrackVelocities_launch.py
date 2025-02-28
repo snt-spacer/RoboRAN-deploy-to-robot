@@ -16,7 +16,7 @@ def generate_launch_description():
                         "task_name": "TrackVelocities",
                         "state_preprocessor_name": "Odometry",
                         "robot_interface_name": "Turtlebot",
-                        "inference_runner_name": "RLGames",
+                        "inference_runner_name": "DebugVel",
                         "enable_logging": True,
                         "device": "cpu",
                         "max_steps": 3000,
