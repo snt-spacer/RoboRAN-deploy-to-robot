@@ -6,8 +6,8 @@ from colorsys import hsv_to_rgb
 
 # Create accelerating sinewave trajectory
 name = "AcceleratingSinewave"
-cfg = {"min_frequency": 1.0, "max_frequency":3.0, "num_periods": 5, "max_amplitude": 2.0, "min_amplitude": 1.0}
-string_cfg = ', '.join([f'{key}: {value}' for key, value in cfg.items()])
+cfg = {"min_frequency": 1.0, "max_frequency": 3.0, "num_periods": 5, "max_amplitude": 2.0, "min_amplitude": 1.0}
+string_cfg = ", ".join([f"{key}: {value}" for key, value in cfg.items()])
 cfg = TrajectoryCfgFactory.create(name, **cfg)
 traj = TrajectoryFactory.create(name, cfg)
 
@@ -18,15 +18,15 @@ rgb = np.array([hsv_to_rgb(i, 1.0, 1.0) for i in t])
 rgba = np.concatenate((rgb, np.ones((xy.shape[0], 1))), axis=1)
 # Plot trajectory
 fig = plt.figure(figsize=(8, 8))
-plt.title("Accelerating Sinewave "+string_cfg)
+plt.title("Accelerating Sinewave " + string_cfg)
 plt.scatter(xy[:, 0], xy[:, 1], color=rgba)
-plt.axis('equal')
+plt.axis("equal")
 fig.savefig("accelerating_sinewave.png")
 
 # Create bernouilli lemniscate trajectory
 name = "BernouilliLemniscate"
 cfg = {"a": 1.0}
-string_cfg = ', '.join([f'{key}: {value}' for key, value in cfg.items()])
+string_cfg = ", ".join([f"{key}: {value}" for key, value in cfg.items()])
 cfg = TrajectoryCfgFactory.create(name, **cfg)
 traj = TrajectoryFactory.create(name, cfg)
 
@@ -37,15 +37,35 @@ rgb = np.array([hsv_to_rgb(i, 1.0, 1.0) for i in t])
 rgba = np.concatenate((rgb, np.ones((xy.shape[0], 1))), axis=1)
 # Plot trajectory
 fig = plt.figure(figsize=(8, 8))
-plt.title("Bernouilli Lemniscate "+string_cfg)
+plt.title("Bernouilli Lemniscate " + string_cfg)
 plt.scatter(xy[:, 0], xy[:, 1], color=rgba)
-plt.axis('equal')
+plt.axis("equal")
 fig.savefig("bernouilli_lemniscate.png")
+
+# Create besace trajectory
+name = "Besace"
+cfg = {"a": 2.0, 'b': 1.0}
+string_cfg = ", ".join([f"{key}: {value}" for key, value in cfg.items()])
+cfg = TrajectoryCfgFactory.create(name, **cfg)
+traj = TrajectoryFactory.create(name, cfg)
+
+# Generate trajectory
+xy, angle = traj.trajectory
+t = np.linspace(0, 1, num=xy.shape[0])
+rgb = np.array([hsv_to_rgb(i, 1.0, 1.0) for i in t])
+rgba = np.concatenate((rgb, np.ones((xy.shape[0], 1))), axis=1)
+# Plot trajectory
+fig = plt.figure(figsize=(8, 8))
+plt.title("Besace " + string_cfg)
+plt.scatter(xy[:, 0], xy[:, 1], color=rgba)
+plt.axis("equal")
+fig.savefig("besace.png")
+
 
 # Create circle trajectory
 name = "Circle"
 cfg = {"radius": 1.0}
-string_cfg = ', '.join([f'{key}: {value}' for key, value in cfg.items()])
+string_cfg = ", ".join([f"{key}: {value}" for key, value in cfg.items()])
 cfg = TrajectoryCfgFactory.create(name, **cfg)
 traj = TrajectoryFactory.create(name, cfg)
 
@@ -58,14 +78,14 @@ rgba = np.concatenate((rgb, np.ones((xy.shape[0], 1))), axis=1)
 fig = plt.figure(figsize=(8, 8))
 plt.title("Circle")
 plt.scatter(xy[:, 0], xy[:, 1], color=rgba)
-plt.axis('equal')
+plt.axis("equal")
 fig.savefig("circle.png")
 
 
 # Create gerono lemniscate trajectory
 name = "GeronoLemniscate"
 cfg = {"a": 1.0}
-string_cfg = ', '.join([f'{key}: {value}' for key, value in cfg.items()])
+string_cfg = ", ".join([f"{key}: {value}" for key, value in cfg.items()])
 cfg = TrajectoryCfgFactory.create(name, **cfg)
 traj = TrajectoryFactory.create(name, cfg)
 
@@ -78,13 +98,13 @@ rgba = np.concatenate((rgb, np.ones((xy.shape[0], 1))), axis=1)
 fig = plt.figure(figsize=(8, 8))
 plt.title("Gerono Lemniscate " + string_cfg)
 plt.scatter(xy[:, 0], xy[:, 1], color=rgba)
-plt.axis('equal')
+plt.axis("equal")
 fig.savefig("gerono_lemniscate.png")
 
 # hippopede trajectory
 name = "Hippopede"
 cfg = {"a": 1.0, "b": 1.0}
-string_cfg = ', '.join([f'{key}: {value}' for key, value in cfg.items()])
+string_cfg = ", ".join([f"{key}: {value}" for key, value in cfg.items()])
 cfg = TrajectoryCfgFactory.create(name, **cfg)
 traj = TrajectoryFactory.create(name, cfg)
 
@@ -97,13 +117,13 @@ rgba = np.concatenate((rgb, np.ones((xy.shape[0], 1))), axis=1)
 fig = plt.figure(figsize=(8, 8))
 plt.title("Hippopede " + string_cfg)
 plt.scatter(xy[:, 0], xy[:, 1], color=rgba)
-plt.axis('equal')
+plt.axis("equal")
 fig.savefig("hippopede.png")
 
 # Create Infinite Square trajectory
 name = "InfiniteSquare"
 cfg = {"x_dim": 1.0, "y_dim": 1.0}
-string_cfg = ', '.join([f'{key}: {value}' for key, value in cfg.items()])
+string_cfg = ", ".join([f"{key}: {value}" for key, value in cfg.items()])
 cfg = TrajectoryCfgFactory.create(name, **cfg)
 traj = TrajectoryFactory.create(name, cfg)
 
@@ -116,13 +136,13 @@ rgba = np.concatenate((rgb, np.ones((xy.shape[0], 1))), axis=1)
 fig = plt.figure(figsize=(8, 8))
 plt.title("Infinite Square " + string_cfg)
 plt.scatter(xy[:, 0], xy[:, 1], color=rgba)
-plt.axis('equal')
+plt.axis("equal")
 fig.savefig("infinite_square.png")
 
 # Create NGon trajectory
 name = "NGon"
 cfg = {"num_sides": 5, "size": 1.0}
-string_cfg = ', '.join([f'{key}: {value}' for key, value in cfg.items()])
+string_cfg = ", ".join([f"{key}: {value}" for key, value in cfg.items()])
 cfg = TrajectoryCfgFactory.create(name, **cfg)
 traj = TrajectoryFactory.create(name, cfg)
 
@@ -133,15 +153,15 @@ rgb = np.array([hsv_to_rgb(i, 1.0, 1.0) for i in t])
 rgba = np.concatenate((rgb, np.ones((xy.shape[0], 1))), axis=1)
 # Plot trajectory
 fig = plt.figure(figsize=(8, 8))
-plt.title("NGon "+string_cfg)
+plt.title("NGon " + string_cfg)
 plt.scatter(xy[:, 0], xy[:, 1], color=rgba)
-plt.axis('equal')
+plt.axis("equal")
 fig.savefig("ngon.png")
 
 # Create Sinewave trajectory
 name = "Sinewave"
 cfg = {"amplitude": 1.0, "frequency": 1.0, "num_periods": 5}
-string_cfg = ', '.join([f'{key}: {value}' for key, value in cfg.items()])
+string_cfg = ", ".join([f"{key}: {value}" for key, value in cfg.items()])
 cfg = TrajectoryCfgFactory.create(name, **cfg)
 traj = TrajectoryFactory.create(name, cfg)
 
@@ -154,13 +174,13 @@ rgba = np.concatenate((rgb, np.ones((xy.shape[0], 1))), axis=1)
 fig = plt.figure(figsize=(8, 8))
 plt.title("Sinewave " + string_cfg)
 plt.scatter(xy[:, 0], xy[:, 1], color=rgba)
-plt.axis('equal')
+plt.axis("equal")
 fig.savefig("sinewave.png")
 
 # Create Spiral trajectory
 name = "Spiral"
 cfg = {"min_radius": 0.25, "max_radius": 2.0, "num_turns": 5.0}
-string_cfg = ', '.join([f'{key}: {value}' for key, value in cfg.items()])
+string_cfg = ", ".join([f"{key}: {value}" for key, value in cfg.items()])
 cfg = TrajectoryCfgFactory.create(name, **cfg)
 traj = TrajectoryFactory.create(name, cfg)
 
@@ -173,13 +193,13 @@ rgba = np.concatenate((rgb, np.ones((xy.shape[0], 1))), axis=1)
 fig = plt.figure(figsize=(8, 8))
 plt.title("Spiral " + string_cfg)
 plt.scatter(xy[:, 0], xy[:, 1], color=rgba)
-plt.axis('equal')
+plt.axis("equal")
 fig.savefig("spiral.png")
 
 # Create Square trajectory
 name = "Square"
 cfg = {"x_dim": 1.0, "y_dim": 1.0}
-string_cfg = ', '.join([f'{key}: {value}' for key, value in cfg.items()])
+string_cfg = ", ".join([f"{key}: {value}" for key, value in cfg.items()])
 cfg = TrajectoryCfgFactory.create(name, **cfg)
 traj = TrajectoryFactory.create(name, cfg)
 
@@ -192,5 +212,5 @@ rgba = np.concatenate((rgb, np.ones((xy.shape[0], 1))), axis=1)
 fig = plt.figure(figsize=(8, 8))
 plt.title("Square " + string_cfg)
 plt.scatter(xy[:, 0], xy[:, 1], color=rgba)
-plt.axis('equal')
+plt.axis("equal")
 fig.savefig("square.png")

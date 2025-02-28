@@ -68,6 +68,7 @@ class TrajectoryCfgFactory:
 # Add all trajectory generators to the factory
 from .accelerating_sinewave_trajectory import AcceleratingSinewaveTrajectory
 from .bernouilli_lemniscate_trajectory import BernouilliLemniscateTrajectory
+from .besace_trajectory import BesaceTrajectory
 from .circle_trajectory import CircleTrajectory
 from .gerono_lemniscate_trajectory import GeronoLemniscateTrajectory
 from .hippopede_trajectory import HippopedeTrajectory
@@ -80,6 +81,7 @@ from .spiral_trajectory import SpiralTrajectory
 # Add all the trajectory generators configurations to the factory
 from .accelerating_sinewave_trajectory import AcceleratingSinewaveTrajectoryCfg
 from .bernouilli_lemniscate_trajectory import BernouilliLemniscateTrajectoryCfg
+from .besace_trajectory import BesaceTrajectoryCfg
 from .circle_trajectory import CircleTrajectoryCfg
 from .gerono_lemniscate_trajectory import GeronoLemniscateTrajectory
 from .hippopede_trajectory import HippopedeTrajectoryCfg
