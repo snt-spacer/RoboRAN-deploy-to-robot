@@ -4,6 +4,7 @@ from dataclasses import dataclass
 from . import BaseTrajectory, BaseTrajectoryCfg
 from . import Registerable, RegisterableCfg
 
+
 @dataclass
 class NGonTrajectoryCfg(BaseTrajectoryCfg, RegisterableCfg):
     num_sides: int = 3
@@ -12,8 +13,10 @@ class NGonTrajectoryCfg(BaseTrajectoryCfg, RegisterableCfg):
     def __post_init__(self):
         assert self.num_sides >= 3, "Number of sides must be at least 3"
 
+
 class NGonTrajectory(BaseTrajectory, Registerable):
     _cfg: NGonTrajectoryCfg
+
     def __init__(self, cfg: NGonTrajectoryCfg) -> None:
         super().__init__(cfg)
 
@@ -23,10 +26,16 @@ class NGonTrajectory(BaseTrajectory, Registerable):
         x = []
         y = []
         for i in range(0, self._cfg.num_sides):
-            x.append((1-t)*np.cos(2*i*np.pi/self._cfg.num_sides) + t*np.cos(2*(i+1)*np.pi/self._cfg.num_sides))
-            y.append((1-t)*np.sin(2*i*np.pi/self._cfg.num_sides) + t*np.sin(2*(i+1)*np.pi/self._cfg.num_sides))
+            x.append(
+                (1 - t) * np.cos(2 * i * np.pi / self._cfg.num_sides)
+                + t * np.cos(2 * (i + 1) * np.pi / self._cfg.num_sides)
+            )
+            y.append(
+                (1 - t) * np.sin(2 * i * np.pi / self._cfg.num_sides)
+                + t * np.sin(2 * (i + 1) * np.pi / self._cfg.num_sides)
+            )
         x = self._cfg.size * np.concatenate(x) / 2.0
         y = self._cfg.size * np.concatenate(y) / 2.0
 
         self._trajectory = np.stack((x, y), axis=1)
-        self._trajectory_angle = np.arctan2(y, x) 
+        self._trajectory_angle = np.arctan2(y, x)

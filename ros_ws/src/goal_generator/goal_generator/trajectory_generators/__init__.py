@@ -1,9 +1,11 @@
 from .base_trajectory import BaseTrajectory, BaseTrajectoryCfg
 
+
 class Registerable:
     def __init_subclass__(cls: BaseTrajectory) -> None:
         cls_name = cls.__name__[:-10]  # Remove "Trajectory" from the class name
         TrajectoryFactory.register(cls_name, cls)
+
 
 class TrajectoryFactory:
     registry = {}
@@ -29,11 +31,13 @@ class TrajectoryFactory:
         print("=============================================")
 
         return cls.registry[cls_name](*args, **kwargs)
-    
+
+
 class RegisterableCfg:
     def __init_subclass__(cls: BaseTrajectory) -> None:
         cls_name = cls.__name__[:-13]  # Remove "Trajectory" from the class name
         TrajectoryCfgFactory.register(cls_name, cls)
+
 
 class TrajectoryCfgFactory:
     registry = {}
@@ -60,6 +64,7 @@ class TrajectoryCfgFactory:
 
         return cls.registry[cls_name](*args, **kwargs)
 
+
 # Add all trajectory generators to the factory
 from .accelerating_sinewave_trajectory import AcceleratingSinewaveTrajectory
 from .bernouilli_lemniscate_trajectory import BernouilliLemniscateTrajectory
@@ -71,6 +76,7 @@ from .ngon_trajectory import NGonTrajectory
 from .sinewave_trajectory import SinewaveTrajectory
 from .square_trajectory import SquareTrajectory
 from .spiral_trajectory import SpiralTrajectory
+
 # Add all the trajectory generators configurations to the factory
 from .accelerating_sinewave_trajectory import AcceleratingSinewaveTrajectoryCfg
 from .bernouilli_lemniscate_trajectory import BernouilliLemniscateTrajectoryCfg

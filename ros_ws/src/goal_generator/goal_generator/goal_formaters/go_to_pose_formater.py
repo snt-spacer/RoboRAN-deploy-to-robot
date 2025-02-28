@@ -51,7 +51,7 @@ class GoToPoseFormater(Registerable, BaseFormater):
     def iterator(self):
         for goal in self._goals:
             yield goal
-    
+
     @property
     def goal(self) -> PoseStamped | None:
         self._goal = next(self._iterator, None)

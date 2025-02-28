@@ -61,7 +61,7 @@ class GoThroughPositionFormater(Registerable, BaseFormater):
 
     def log_publish(self) -> str:
         return f"Published goal:\n + x={[pose.position.x for pose in self._goal.poses]}, y={[pose.position.y for pose in self._goal.poses]}"
-    
+
     def reset(self):
         self._iterator = self.iterator()
         self._is_done = False

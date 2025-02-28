@@ -11,6 +11,7 @@ from .goal_formaters import GoalFormaterFactory
 
 from rcl_interfaces.msg import ParameterDescriptor
 
+
 class GoalPublisherNode(Node):
     def __init__(self):
         super().__init__("goal_publisher_node")
@@ -52,22 +53,14 @@ class GoalPublisherNode(Node):
 
         self._a = self._prev_a = self._b = self._prev_b = 0
         self._a_was_pressed = self._a_was_released = self._b_was_pressed = self._b_was_released = False
-        self._permanent_a_press = self._permanent_a_release = self._permanent_b_press = self._permanent_b_release = False
+        self._permanent_a_press = self._permanent_a_release = self._permanent_b_press = self._permanent_b_release = (
+            False
+        )
         self._goals_exhausted = False
 
         # ROS2 Subscriptions
-        self.create_subscription(
-            Bool,
-            "task_is_done",
-            self.task_is_done_callback,
-            1
-        )
-        self.create_subscription(
-            Joy,
-            "/joy",
-            self.joy_callback,
-            1
-        )
+        self.create_subscription(Bool, "task_is_done", self.task_is_done_callback, 1)
+        self.create_subscription(Joy, "/joy", self.joy_callback, 1)
 
         # ROS2 Publishers
         self.goal_pub = self.create_publisher(
@@ -117,7 +110,7 @@ class GoalPublisherNode(Node):
 
     def run(self):
         self.get_logger().info("Press 'A' to start!")
-        self.wait_for_A_button()        
+        self.wait_for_A_button()
         self.get_logger().info("Starting the goal publisher node...")
         while rclpy.ok():
             self.run_goal_loop()
@@ -135,10 +128,9 @@ class GoalPublisherNode(Node):
                 self.get_logger().info("Press the 'A' key to send the next goal!")
                 self.wait_for_A_button()
 
-
     def run_goal_loop(self) -> None:
         rate = self.create_rate(0.5)
-    
+
         goal_was_sent = False
         while rclpy.ok():
             if self.goal_pub.get_subscription_count() == 0:
