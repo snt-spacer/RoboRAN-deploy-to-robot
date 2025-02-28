@@ -5,6 +5,10 @@ import rclpy
 from rclpy.node import Node
 from std_msgs.msg import Bool
 from sensor_msgs.msg import Joy
+from geometry_msgs.msg import Pose, PoseStamped, PointStamped, PoseArray
+from scipy.spatial.transform import Rotation
+from nav_msgs.msg import Odometry
+import numpy as np
 import copy
 
 from .goal_formaters import GoalFormaterFactory
@@ -37,12 +41,15 @@ class GoalPublisherNode(Node):
         self.declare_parameter("wait_for_task_timeout", 600, wait_for_task_timeout_desc)
         self._wait_for_task_timeout = self.get_parameter("wait_for_task_timeout").get_parameter_value().integer_value
 
-        # Device
-        device_desc = ParameterDescriptor(
-            description='The device to be used for the task. If set to "auto", the device will be selected automatically.'
-        )
-        self.declare_parameter("device", "auto", device_desc)
-        self._device = self.get_parameter("device").get_parameter_value().string_value
+        # Local or global frame
+        is_local_desc = ParameterDescriptor(description="If the goals should be published in the local or global frame.")
+        self.declare_parameter("is_local", True, is_local_desc)
+        self._is_local = self.get_parameter("is_local").get_parameter_value().bool_value
+
+        # Message types
+        self._odom_msg_type_desc = ParameterDescriptor(description="The type of the odometry message.")
+        self.declare_parameter("odom_msg_type", "Odometry", self._odom_msg_type_desc)
+        self._odom_msg_type = self.get_parameter("odom_msg_type").get_parameter_value().string_value
 
         self._task_is_done = False
 
@@ -59,6 +66,20 @@ class GoalPublisherNode(Node):
         self._goals_exhausted = False
 
         # ROS2 Subscriptions
+        frame_type = None
+        frame_callback = None
+        if self._odom_msg_type == "Odometry":
+            frame_type = Odometry
+            frame_callback = self.odometry_callback
+        elif self._odom_msg_type == "PoseStamped":
+            frame_type = PoseStamped
+            frame_callback = self.pose_stamped_callback
+        elif self._odom_msg_type == "TF":
+            raise NotImplementedError("TF is not supported yet.")
+        else:
+            raise ValueError("Invalid odometry message type.")
+        
+        self.create_subscription(frame_type, "state_preprocessor_input", frame_callback, 1)
         self.create_subscription(Bool, "task_is_done", self.task_is_done_callback, 1)
         self.create_subscription(Joy, "/joy", self.joy_callback, 1)
 
@@ -83,6 +104,103 @@ class GoalPublisherNode(Node):
             if self._b_was_pressed:
                 self._permanent_b_press = False
                 return False
+            
+    def odometry_callback(self, msg: Odometry) -> None:
+        self._global_frame = msg.header.frame_id
+        self._local_pose = PoseStamped()
+        self._local_pose.header = msg.header
+        self._local_pose.pose = msg.pose.pose
+
+    def pose_stamped_callback(self, msg: PoseStamped) -> None:
+        self._global_frame = msg.header.frame_id
+        self._local_pose = msg
+
+    def convert_point_to_local_frame(self, point: PointStamped) -> PointStamped:
+        if self._local_pose is not None:
+            # Build the transform
+            q = [self._local_pose.pose.orientation.x, self._local_pose.pose.orientation.y, self._local_pose.pose.orientation.z, self._local_pose.pose.orientation.w]
+            R = Rotation.from_quat(q,scalar_first=False)
+            T = np.array([self._local_pose.pose.position.x, self._local_pose.pose.position.y, self._local_pose.pose.position.z])
+            # Transform the point
+            point = np.array([point.point.x, point.point.y, point.point.z])
+            point = R.inv().apply(point - T)
+            point = PointStamped()
+            point.point.x = point[0]
+            point.point.y = point[1]
+            point.point.z = point[2]
+            return point
+        else:
+            return point
+
+    def convert_pose_to_local_frame(self, pose: PoseStamped) -> PoseStamped:
+        if self._local_pose is not None:
+            # Build the transform
+            q = [self._local_pose.pose.orientation.x, self._local_pose.pose.orientation.y, self._local_pose.pose.orientation.z, self._local_pose.pose.orientation.w]
+            R = Rotation.from_quat(q,scalar_first=False)
+            R_inv = R.inv()
+            T = np.array([self._local_pose.pose.position.x, self._local_pose.pose.position.y, self._local_pose.pose.position.z])
+            # Transform the pose
+            point = np.array([pose.pose.position.x, pose.pose.position.y, pose.pose.position.z])
+            point = R.apply(point - T, inverse=True)
+            
+            pose = PoseStamped()
+            pose.pose.position.x = pose[0]
+            pose.pose.position.y = pose[1]
+            pose.pose.position.z = pose[2]
+            q = [pose.orientation.x, pose.orientation.y, pose.orientation.z, pose.orientation.w]
+            R2 = Rotation.from_quat(q, scalar_first=False).as_matrix()
+            R2 = R_inv.as_matrix() @ R2
+            q = Rotation.from_matrix(R2).as_quat()
+            pose.pose.orientation.x = q[0]
+            pose.pose.orientation.y = q[1]
+            pose.pose.orientation.z = q[2]
+            pose.pose.orientation.w = q[3]
+            return pose
+        else:
+            return pose
+
+    def convert_pose_array_to_local_frame(self, pose_array: PoseArray) -> PoseArray:
+        if self._local_pose is not None:
+            # Build the transform
+            q = [self._local_pose.pose.orientation.x, self._local_pose.pose.orientation.y, self._local_pose.pose.orientation.z, self._local_pose.pose.orientation.w]
+            R = Rotation.from_quat(q,scalar_first=False)
+            T = np.array([self._local_pose.pose.position.x, self._local_pose.pose.position.y, self._local_pose.pose.position.z])
+            R_inv = R.inv()
+            # Transform the pose array
+            new_pose_array = PoseArray()
+            new_pose_array.header = pose_array.header
+            for pose in pose_array.poses:
+                new_pose = Pose()
+                point = np.array([pose.position.x, pose.position.y, pose.position.z])
+                point = R_inv.apply(point - T)
+                new_pose.position.x = point[0]
+                new_pose.position.y = point[1]
+                new_pose.position.z = point[2]
+                q = [pose.orientation.x, pose.orientation.y, pose.orientation.z, pose.orientation.w]
+                R2 = Rotation.from_quat(q, scalar_first=False).as_matrix()
+                R2 = R_inv.as_matrix() @ R2
+                q = Rotation.from_matrix(R2).as_quat()
+                new_pose.orientation.x = q[0]
+                new_pose.orientation.y = q[1]
+                new_pose.orientation.z = q[2]
+                new_pose.orientation.w = q[3]
+                new_pose_array.poses.append(pose)
+            return new_pose_array
+        else:
+            return pose_array
+        
+    def auto_project(self, msg: PointStamped | PoseStamped | PoseArray) -> PointStamped | PoseStamped | PoseArray:
+        if self._is_local:
+            if isinstance(msg, PointStamped):
+                return self.convert_point_to_local_frame(msg)
+            elif isinstance(msg, PoseStamped):
+                return self.convert_pose_to_local_frame(msg)
+            elif isinstance(msg, PoseArray):
+                return self.convert_pose_array_to_local_frame(msg)
+            else:
+                raise ValueError("Invalid message type.")
+        else:
+            return
 
     def task_is_done_callback(self, msg: Bool) -> None:
         self._task_is_done = msg.data
@@ -136,7 +254,7 @@ class GoalPublisherNode(Node):
             if self.goal_pub.get_subscription_count() == 0:
                 self.get_logger().info("Waiting for subscriber...")
             if self.goal_pub.get_subscription_count() != 0 and goal_was_sent == False:
-                self.goal_pub.publish(self.goal_formater.goal)
+                self.goal_pub.publish(self.auto_project(self.goal_formater.goal))
                 self.get_logger().info(self.goal_formater.log_publish())
                 goal_was_sent = True
 
