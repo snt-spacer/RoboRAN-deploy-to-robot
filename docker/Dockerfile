@@ -9,6 +9,7 @@ RUN apt-get update && apt-get install -y \
     python3-pip \
     ros-humble-rclpy \
     ros-humble-geometry-msgs \
+    ros-humble-joy \
     git \
     byobu \
     && rm -rf /var/lib/apt/lists/*
