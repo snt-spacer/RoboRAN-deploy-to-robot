@@ -17,4 +17,7 @@ class HippopedeTrajectory(BaseTrajectory, Registerable):
     def generate_trajectory(self) -> None:
         theta = np.linspace(0, 2 * np.pi, num=1000)
         r = 4*self._cfg.b*(self._cfg.a - self._cfg.b * np.sin(theta)**2)
-        
+        x = r * np.cos(theta)
+        y = r * np.sin(theta)
+        self._trajectory = np.stack((x, y), axis=1)
+        self._trajectory_angle = np.arctan2(y, x)        

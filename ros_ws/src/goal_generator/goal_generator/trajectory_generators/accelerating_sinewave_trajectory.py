@@ -6,11 +6,10 @@ from . import Registerable, RegisterableCfg
 
 @dataclass
 class AcceleratingSinewaveTrajectoryCfg(BaseTrajectoryCfg, RegisterableCfg):
-    amplitude: float = 1.0
-    frequency: float = 1.0
+    min_frequency: float = 1.0
+    max_frequency: float = 3.0
     num_periods: int = 5
-    acceleration_rate: float = 1.2
-    max_amplitude: float = 2.0
+    max_amplitude: float = 3.0
     min_amplitude: float = 1.0
 
 
@@ -21,9 +20,10 @@ class AcceleratingSinewaveTrajectory(BaseTrajectory, Registerable):
 
     def generate_trajectory(self) -> None:
         t = np.linspace(0, 1, num=1000)
-        x = t *2 * np.pi * self._cfg.num_periods / self._cfg.frequency
+        x = t *2 * np.pi * self._cfg.num_periods / ((self._cfg.max_frequency + self._cfg.min_frequency)/2)
         amplitude = self._cfg.min_amplitude + (self._cfg.max_amplitude - self._cfg.min_amplitude) * (1 - t)
-        y = amplitude * np.sin(self._cfg.frequency * t ** self._cfg.acceleration_rate)
+        frequency = self._cfg.min_frequency + (self._cfg.max_frequency - self._cfg.min_frequency) * t
+        y = amplitude * np.sin(x * frequency)
         
         # Circle
         self._trajectory = np.stack((x, y), axis=1)

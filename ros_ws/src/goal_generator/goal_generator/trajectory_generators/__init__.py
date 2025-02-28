@@ -3,8 +3,6 @@ from .base_trajectory import BaseTrajectory, BaseTrajectoryCfg
 class Registerable:
     def __init_subclass__(cls: BaseTrajectory) -> None:
         cls_name = cls.__name__[:-10]  # Remove "Trajectory" from the class name
-        print("Factory")
-        print("Registering class: ", cls_name)
         TrajectoryFactory.register(cls_name, cls)
 
 class TrajectoryFactory:
@@ -35,8 +33,6 @@ class TrajectoryFactory:
 class RegisterableCfg:
     def __init_subclass__(cls: BaseTrajectory) -> None:
         cls_name = cls.__name__[:-13]  # Remove "Trajectory" from the class name
-        print("Factory")
-        print("Registering class: ", cls_name)
         TrajectoryCfgFactory.register(cls_name, cls)
 
 class TrajectoryCfgFactory:
