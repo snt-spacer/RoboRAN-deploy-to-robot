@@ -1,4 +1,4 @@
 trajectory:
   name: "GeronoLemniscate"
   cfg:
-    a: 1.5
+    a: 7.5

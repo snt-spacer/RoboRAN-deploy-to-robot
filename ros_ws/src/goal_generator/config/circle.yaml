@@ -1,0 +1,4 @@
+trajectory:
+  name: "Circle"
+  cfg:
+    radius: 7.5

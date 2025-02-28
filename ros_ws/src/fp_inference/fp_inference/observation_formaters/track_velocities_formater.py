@@ -1,4 +1,5 @@
 from . import Registerable
+from . import Registerable
 from . import BaseFormater, BaseFormaterCfg
 from fp_inference.state_preprocessors import BaseStatePreProcessor
 
@@ -18,8 +19,8 @@ class TrackVelocitiesFormaterCfg(BaseFormaterCfg):
     closed_loop: bool = True
     "Whether the trajectory is closed (it forms a loop) or not."
 
-    max_lin_vel: float = 0.50
-    max_ang_vel: float = 0.9
+    max_lin_vel: float = 0.5
+    max_ang_vel: float = 0.5
 
 class TrackVelocitiesFormater(Registerable, BaseFormater):
     _task_cfg: TrackVelocitiesFormaterCfg
@@ -50,7 +51,7 @@ class TrackVelocitiesFormater(Registerable, BaseFormater):
         self._target_heading = torch.zeros((1, 1), device=self._device)
 
         self.current_point = -1
-        self.lookhead = 0.15
+        self.lookhead = 1.0
         self.closed = self._task_cfg.closed_loop
 
     def build_logs(self) -> None:
@@ -130,10 +131,9 @@ class TrackVelocitiesFormater(Registerable, BaseFormater):
         target_ang_vel_b = self._target_heading = torch.arctan2(target_lin_vel_b[1], target_lin_vel_b[0])
         
         self._target_lin_vel_b[:,0] = target_lin_vel_b[0] * self._task_cfg.max_lin_vel
-        self._target_lat_vel_b[:,0] = 0 #target_lin_vel_b[:, 1]
-    
-        self._target_ang_vel[:,0] = torch.clamp(target_ang_vel_b / torch.pi * self._task_cfg.max_ang_vel * 2, -0.9, 0.9)
-     
+        self._target_lat_vel_b[:,0] = 0.0
+        self._target_ang_vel[:,0] = torch.clamp(target_ang_vel_b * self._task_cfg.max_ang_vel, -0.5, 0.5)
+
         self.roll_trajectory()
 
         # linear velocity error
