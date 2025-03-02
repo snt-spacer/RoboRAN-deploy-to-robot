@@ -78,16 +78,71 @@ class GoalPublisherNode(Node):
 
         self.build()
 
+    @property
+    def a_was_pressed(self) -> bool:
+        """Check if the 'A' button was pressed.
+        
+        Returns:
+            bool: True if the 'A' button was pressed, False otherwise.
+        """
+        if self._permanent_a_press:
+            self._permanent_a_press = False
+            return True
+        else:
+            return False
+    
+    @property
+    def a_was_released(self) -> bool:
+        """Check if the 'A' button was released.
+        
+        Returns:
+            bool: True if the 'A' button was released, False otherwise.
+        """
+        if self._permanent_a_release:
+            self._permanent_a_release = False
+            return True
+        else:
+            return False
+    
+    @property
+    def b_was_pressed(self) -> bool:
+        """Check if the 'B' button was pressed.
+        
+        Returns:
+            bool: True if the 'B' button was pressed, False otherwise.
+        """
+        if self._permanent_b_press:
+            self._permanent_b_press = False
+            return True
+        else:
+            return False
+    
+    @property
+    def b_was_released(self) -> bool:
+        """Check if the 'B' button was released.
+        
+        Returns:
+            bool: True if the 'B' button was released, False otherwise.
+        """
+        if self._permanent_b_release:
+            self._permanent_b_release = False
+            return True
+        else:
+            return False
+
     def build(self) -> None:
         """Build the goal publisher node."""
 
+        # Initialize the goal formater
         self.goal_formater = GoalFormaterFactory.create(self._task_name, self._goals_file_path)
 
-        self._a = self._prev_a = self._b = self._prev_b = 0
-        self._a_was_pressed = self._a_was_released = self._b_was_pressed = self._b_was_released = False
-        self._permanent_a_press = self._permanent_a_release = self._permanent_b_press = self._permanent_b_release = (
-            False
-        )
+        # Logic to handle button events
+        self._a = self._prev_a = 0
+        self._a_was_pressed = self._a_was_released = False
+        self._permanent_a_press = self._permanent_a_release = False
+        self._b = self._prev_b = 0
+        self._permanent_b_press = self._permanent_b_release = False
+        self._b_was_pressed = self._b_was_released = False
         self._goals_exhausted = False
 
         # ROS2 Subscriptions
@@ -282,6 +337,17 @@ class GoalPublisherNode(Node):
             return pose_array
         
     def auto_project(self, msg: PointStamped | PoseStamped | PoseArray) -> PointStamped | PoseStamped | PoseArray:
+        """Auto project the message to the local frame. Acts like a overloaded method.
+
+        The method automatically projects the message to the local frame. The projection is performed based on the type
+        of the message.
+
+        Args:
+            msg (PointStamped | PoseStamped | PoseArray): The message to project.
+
+        Returns:
+            PointStamped | PoseStamped | PoseArray: The projected message.
+        """
         if self._is_local:
             if isinstance(msg, PointStamped):
                 return self.convert_point_to_local_frame(msg)
@@ -295,9 +361,27 @@ class GoalPublisherNode(Node):
             return
 
     def task_is_done_callback(self, msg: Bool) -> None:
+        """Task is done callback.
+        
+        The method is called when the task is done message is received. The task is done message is used to determine
+        
+        Args:
+            msg (Bool): The task is done message.
+        """
         self._task_is_done = msg.data
 
     def joy_callback(self, msg: Joy) -> None:
+        """Joystick callback.
+
+        The method is called when a joystick message is received. The joystick message is used to determine if the 'A'
+        or 'B' button is pressed or released. The method also implements permanent press and release for the 'A' and 'B'
+        buttons. The permanent press and release are used to determine if the button was pressed or released since the
+        last time it was checked. The user should then reset the permanent press or release flag after checking it. Or
+        access them through the properties.
+
+        Args:
+            msg (Joy): The joystick message.
+        """
         self._buttons = msg.buttons
         # A button
         self._prev_a = copy.copy(self._a)
@@ -319,6 +403,15 @@ class GoalPublisherNode(Node):
             self._permanent_b_release = True
 
     def run(self):
+        """Run the goal publisher node.
+        
+        The method runs the goal publisher node. The method waits for the 'A' button to be pressed. Once the 'A' button
+        is pressed, the goal publisher sends the first goal. The goal publisher then waits for the task to be completed.
+        When the task is completed, the goal publisher waits for the 'A' button to be pressed again if there are more
+        goals. If there are no more goals, the goal publisher offers the option to restart the goal publisher node or
+        exit the node. Pressing the 'A' button restarts the goal publisher node, and pressing the 'B' button exits the
+        node.
+        """
         self.get_logger().info("Press 'A' to start!")
         self.wait_for_A_button()
         self.get_logger().info("Starting the goal publisher node...")
@@ -339,36 +432,56 @@ class GoalPublisherNode(Node):
                 self.wait_for_A_button()
 
     def run_goal_loop(self) -> None:
+        """Run the goal loop.
+        
+        The method runs the goal loop. The goal loop sends the goals to the observation formater node. The method waits
+        for the task to be completed. When the task is completed, the method exits the loop.
+        """
+        # Frequency at which we check for the task completion
         rate = self.create_rate(0.5)
-
+        start_time = self.get_clock().now()
         goal_was_sent = False
         while rclpy.ok():
+            # Check if there is a subscriber
             if self.goal_pub.get_subscription_count() == 0:
                 self.get_logger().info("Waiting for subscriber...")
+
+            # Check if the goal was sent
             if self.goal_pub.get_subscription_count() != 0 and goal_was_sent == False:
                 self.goal_pub.publish(self.auto_project(self.goal_formater.goal))
                 self.get_logger().info(self.goal_formater.log_publish())
                 goal_was_sent = True
 
+            # Check if the task is done
             if self._task_is_done:
                 self.get_logger().info("Task completed!")
                 break
+
+            # Check if the task is taking too long to complete
+            now = self.get_clock().now()
+            if (now - start_time).nanoseconds / 1e9 > self._wait_for_task_timeout:
+                self.get_logger().info("Task taking too long to complete. Exiting...")
+                break
+
             rate.sleep()
 
     def clean_termination(self):
+        """Clean termination."""
         self.destroy_node()
         rclpy.shutdown()
 
 
 def main(args=None):
+    """Run the goal publisher node."""
     rclpy.init(args=args)
     goal_publisher_node = GoalPublisherNode()
-
+    # Start the node in callbacks in a separate thread
     thread = threading.Thread(target=rclpy.spin, args=(goal_publisher_node,), daemon=True)
     thread.start()
-
+    # Run the node
     goal_publisher_node.run()
     goal_publisher_node.clean_termination()
+    # Wait for the thread to finish
     thread.join()
 
 
