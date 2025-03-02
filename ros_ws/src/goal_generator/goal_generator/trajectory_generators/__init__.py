@@ -72,7 +72,9 @@ from .besace_trajectory import BesaceTrajectory
 from .circle_trajectory import CircleTrajectory
 from .gerono_lemniscate_trajectory import GeronoLemniscateTrajectory
 from .hippopede_trajectory import HippopedeTrajectory
+from .hypotrochoid_trajectory import HypotrochoidTrajectory
 from .infinite_square_trajectory import InfiniteSquareTrajectory
+from .lissajous_trajectory import LissajousTrajectory
 from .ngon_trajectory import NGonTrajectory
 from .sinewave_trajectory import SinewaveTrajectory
 from .square_trajectory import SquareTrajectory
@@ -85,7 +87,9 @@ from .besace_trajectory import BesaceTrajectoryCfg
 from .circle_trajectory import CircleTrajectoryCfg
 from .gerono_lemniscate_trajectory import GeronoLemniscateTrajectory
 from .hippopede_trajectory import HippopedeTrajectoryCfg
+from .hypotrochoid_trajectory import HypotrochoidTrajectoryCfg
 from .infinite_square_trajectory import InfiniteSquareTrajectoryCfg
+from .lissajous_trajectory import LissajousTrajectoryCfg
 from .ngon_trajectory import NGonTrajectoryCfg
 from .sinewave_trajectory import SinewaveTrajectoryCfg
 from .square_trajectory import SquareTrajectoryCfg

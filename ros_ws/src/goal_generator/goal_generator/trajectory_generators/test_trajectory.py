@@ -120,6 +120,25 @@ plt.scatter(xy[:, 0], xy[:, 1], color=rgba)
 plt.axis("equal")
 fig.savefig("hippopede.png")
 
+# Create Hypotrochoid trajectory
+name = "Hypotrochoid"
+cfg = {"R": 7, "r": 4, "d": 1.0}
+string_cfg = ", ".join([f"{key}: {value}" for key, value in cfg.items()])
+cfg = TrajectoryCfgFactory.create(name, **cfg)
+traj = TrajectoryFactory.create(name, cfg)
+
+# Generate trajectory
+xy, angle = traj.trajectory
+t = np.linspace(0, 1, num=xy.shape[0])
+rgb = np.array([hsv_to_rgb(i, 1.0, 1.0) for i in t])
+rgba = np.concatenate((rgb, np.ones((xy.shape[0], 1))), axis=1)
+# Plot trajectory
+fig = plt.figure(figsize=(8, 8))
+plt.title("Hypotrochoid " + string_cfg)
+plt.scatter(xy[:, 0], xy[:, 1], color=rgba)
+plt.axis("equal")
+fig.savefig("hypotrochoid.png")
+
 # Create Infinite Square trajectory
 name = "InfiniteSquare"
 cfg = {"x_dim": 1.0, "y_dim": 1.0}
@@ -138,6 +157,25 @@ plt.title("Infinite Square " + string_cfg)
 plt.scatter(xy[:, 0], xy[:, 1], color=rgba)
 plt.axis("equal")
 fig.savefig("infinite_square.png")
+
+# Create Lissajous trajectory
+name = "Lissajous"
+cfg = {"A": 1.0, "B": 1.0, "a": 5.0, "b": 4.0, "omega_x": np.pi / 2.0}
+string_cfg = ", ".join([f"{key}: {value}" for key, value in cfg.items()])
+cfg = TrajectoryCfgFactory.create(name, **cfg)
+traj = TrajectoryFactory.create(name, cfg)
+
+# Generate trajectory
+xy, angle = traj.trajectory
+t = np.linspace(0, 1, num=xy.shape[0])
+rgb = np.array([hsv_to_rgb(i, 1.0, 1.0) for i in t])
+rgba = np.concatenate((rgb, np.ones((xy.shape[0], 1))), axis=1)
+# Plot trajectory
+fig = plt.figure(figsize=(8, 8))
+plt.title("Lissajous " + string_cfg)
+plt.scatter(xy[:, 0], xy[:, 1], color=rgba)
+plt.axis("equal")
+fig.savefig("lissajous.png")
 
 # Create NGon trajectory
 name = "NGon"
