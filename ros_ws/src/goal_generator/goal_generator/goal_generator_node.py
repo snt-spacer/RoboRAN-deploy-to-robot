@@ -17,7 +17,30 @@ from rcl_interfaces.msg import ParameterDescriptor
 
 
 class GoalPublisherNode(Node):
-    def __init__(self):
+    """Goal publisher node.
+    
+    The goal publisher node is used to publish goals to the observation formater node. The goals are read from a YAML
+    file, and published to the observation formater node. Depending on the configuration, the goals can be published in
+    the local or global frame. To iterate through the goals, the 'A' button on the joystick must be pressed. To exit the
+    node, the 'B' button must be pressed.
+    """
+
+    def __init__(self) -> None:
+        """Initialize the goal publisher node.
+        
+        This method initializes the goal publisher node with the following parameters:
+        - task_name: The name of the task to be executed. Default is 'GoToPosition'.
+        - goals_file_path: The path to the file containing the goals. Default is ''. The goals are read from this file.
+            It must follow the format associated with the type of task.
+        - wait_for_task_timeout: The time to wait for the task to be completed before exiting. Default is 600 seconds.
+            If the task is not completed within this time, the node will unlock the current goal.
+        - is_local: If the goals should be published in the local or global frame. Default is True. If True, the goals
+            are published in the local frame. That is the frame of the robot. This is useful when sending multiple goals
+            this way the goals are sent relative to the robot. If False, the goals are published in the global frame.
+        - odom_msg_type: The type of the odometry message. Default is 'Odometry'. The odometry message is used to
+            perform the transformation between the local and global frames.
+        """
+
         super().__init__("goal_publisher_node")
 
         # Task name
@@ -55,7 +78,9 @@ class GoalPublisherNode(Node):
 
         self.build()
 
-    def build(self):
+    def build(self) -> None:
+        """Build the goal publisher node."""
+
         self.goal_formater = GoalFormaterFactory.create(self._task_name, self._goals_file_path)
 
         self._a = self._prev_a = self._b = self._prev_b = 0
@@ -90,13 +115,24 @@ class GoalPublisherNode(Node):
             self.goal_formater.QOS_PROFILE,
         )
 
-    def wait_for_A_button(self):
+    def wait_for_A_button(self) -> None:
+        """Wait for the 'A' button to be pressed.
+        
+        The method blocks until the 'A' button is pressed.
+        """
         while rclpy.ok():
             if self._permanent_a_press:
                 self._permanent_a_press = False
                 break
 
     def wait_for_A_or_B_button(self) -> bool:
+        """Wait for the 'A' or 'B' button to be pressed.
+
+        The method blocks until the 'A' or 'B' button is pressed.
+        
+        Returns:
+            bool: True if the 'A' button was pressed, False if the 'B' button was pressed.
+        """
         while rclpy.ok():
             if self._permanent_a_press:
                 self._permanent_a_press = False
@@ -106,16 +142,51 @@ class GoalPublisherNode(Node):
                 return False
             
     def odometry_callback(self, msg: Odometry) -> None:
+        """Odometry callback.
+        
+        The method is called when an odometry message is received. The odometry message is used to transform the goals
+        from the global to the local frame.
+
+        Note: The odometry message is converted to a PoseStamped message. Ideally we should use the TF tree to
+        perform the transformation. However, some form of robot localization do not provide the TF tree. Hence,
+        for now, we perform the transformation manually.
+        
+        Args:
+            msg (Odometry): The odometry message.
+        """
         self._global_frame = msg.header.frame_id
         self._local_pose = PoseStamped()
         self._local_pose.header = msg.header
         self._local_pose.pose = msg.pose.pose
 
     def pose_stamped_callback(self, msg: PoseStamped) -> None:
+        """PoseStamped callback.
+
+        The method is called when a PoseStamped message is received. The PoseStamped message is used to transform the
+        goals from the global to the local frame.
+
+        Note: The odometry message is converted to a PoseStamped message. Ideally we should use the TF tree to
+        perform the transformation. However, some form of robot localization do not provide the TF tree. Hence,
+        for now, we perform the transformation manually.
+        
+        Args:
+            msg (PoseStamped): The PoseStamped message.
+        """
         self._global_frame = msg.header.frame_id
         self._local_pose = msg
 
     def convert_point_to_local_frame(self, point: PointStamped) -> PointStamped:
+        """Convert a point to the local frame.
+        
+        The method converts a point from the global to the local frame. The transformation is performed using the
+        pose of the robot in the global frame.
+
+        Args:
+            point (PointStamped): The point to convert.
+        
+        Returns:
+            PointStamped: The point in the local frame.
+        """
         if self._local_pose is not None:
             # Build the transform
             q = [self._local_pose.pose.orientation.x, self._local_pose.pose.orientation.y, self._local_pose.pose.orientation.z, self._local_pose.pose.orientation.w]
@@ -133,6 +204,17 @@ class GoalPublisherNode(Node):
             return point
 
     def convert_pose_to_local_frame(self, pose: PoseStamped) -> PoseStamped:
+        """Convert a pose to the local frame.
+
+        The method converts a pose from the global to the local frame. The transformation is performed using the
+        pose of the robot in the global frame.
+
+        Args:
+            pose (PoseStamped): The pose to convert.
+        
+        Returns:
+            PoseStamped: The pose in the local frame.
+        """
         if self._local_pose is not None:
             # Build the transform
             q = [self._local_pose.pose.orientation.x, self._local_pose.pose.orientation.y, self._local_pose.pose.orientation.z, self._local_pose.pose.orientation.w]
@@ -159,6 +241,17 @@ class GoalPublisherNode(Node):
             return pose
 
     def convert_pose_array_to_local_frame(self, pose_array: PoseArray) -> PoseArray:
+        """Convert a pose array to the local frame.
+
+        The method converts a pose array from the global to the local frame. The transformation is performed using the
+        pose of the robot in the global frame.
+
+        Args:
+            pose_array (PoseArray): The pose array to convert.
+        
+        Returns:
+            PoseArray: The pose array in the local frame.
+        """
         if self._local_pose is not None:
             # Build the transform
             q = [self._local_pose.pose.orientation.x, self._local_pose.pose.orientation.y, self._local_pose.pose.orientation.z, self._local_pose.pose.orientation.w]

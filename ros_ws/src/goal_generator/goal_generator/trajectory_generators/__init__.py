@@ -23,7 +23,8 @@ class TrajectoryFactory:
     """Trajectory factory class.
     
     The factory is used to create trajectory generator objects. Trajectory generators objects create
-    trajectories with different shapes."""
+    trajectories with different shapes.
+    """
     registry = {}
 
     @classmethod
@@ -83,7 +84,8 @@ class TrajectoryCfgFactory:
     """Trajectory configuration factory class.
 
     The factory is used to create trajectory generator configuration objects. Trajectory generator configuration
-    objects are used to configure the trajectory generator objects."""
+    objects are used to configure the trajectory generator objects.
+    """
     registry = {}
 
     @classmethod
