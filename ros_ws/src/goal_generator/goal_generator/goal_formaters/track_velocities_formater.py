@@ -3,21 +3,18 @@ from . import BaseFormater, BaseFormaterCfg
 
 import rclpy
 from std_msgs.msg import Header
-from custom_msgs.msg import PositionsAnglesTrackingStamped
+from geometry_msgs.msg import PoseArray, Pose
 from dataclasses import dataclass
 
 import torch
 import numpy as np
 
+from goal_generator.trajectory_generators import TrajectoryFactory, TrajectoryCfgFactory
+
 
 @dataclass
 class TrackVelocitiesFormaterCfg(BaseFormaterCfg):
-    closed_loop: bool = True
-    "Whether the trajectory is closed (it forms a loop) or not."
-    trajectory_x_offset: float = 0.0
-    "Offset in x direction for the trajectory."
-    trajectory_y_offset: float = 0.0
-    "Offset in y direction for the trajectory."
+    pass
 
 
 class TrackVelocitiesFormater(Registerable, BaseFormater):
@@ -31,65 +28,45 @@ class TrackVelocitiesFormater(Registerable, BaseFormater):
     ) -> None:
         super().__init__(goals_file_path, task_cfg)
 
-        self.ROS_TYPE = PositionsAnglesTrackingStamped
-        self.ROS_QUEUE_SIZE = 1
-        self.current_tracking_point_indx = -1
-        self.close_loop = self._task_cfg.closed_loop
+        self.ROS_TYPE = PoseArray
 
         self.process_yaml()
 
     def process_yaml(self):
+        assert "trajectory" in self._yaml_file, "No trajectory found in the YAML file."
+        assert "name" in self._yaml_file["trajectory"], "No trajectory name found in the YAML file."
+        assert "cfg" in self._yaml_file["trajectory"], "No trajectory configuration found in the YAML file."
+        assert "frame" in self._yaml_file, "No frame found in the YAML file."
+        assert self._yaml_file["frame"].lower() in ["global", "local"], "Invalid frame coordinates type."
 
-        data = self._yaml_file["TrackVelocities"]
+        self._trajectory_cfg = TrajectoryCfgFactory.create(
+            self._yaml_file["trajectory"]["name"], **self._yaml_file["trajectory"]["cfg"]
+        )
+        self._trajectory_gen = TrajectoryFactory.create(self._yaml_file["trajectory"]["name"], self._trajectory_cfg)
+        self._frame = self._yaml_file["frame"].lower()
 
-        assert data, "No data found for TrackVelocities task."
-        assert data["frame"].lower() in ["world", "local"], "Invalid frame coordinates type."
+    def generate_pose_array(self):
+        positions, angles = self._trajectory_gen.trajectory
 
-        frame = data["frame"]
-        self.close_loop = data["closed"]
-
-        self._goal = PositionsAnglesTrackingStamped()
-
-        if data["shape"].lower() == "circle":
-            self.generate_circle(data["circle"])
-            self.shape_type = "circle"
-        elif data["shape"].lower() == "square":
-            self.generate_square(data["square"])
-            self.shape_type = "square"
-        elif data["shape"].lower() == "spiral":
-            self.generate_spiral(data["spiral"])
-            self.shape_type = "spiral"
-        else:
-            raise ValueError("Invalid shape of velocities.")
-        
-
-        if frame.lower() == "world":
-            self._goal.header = Header()
-            self._goal.header.stamp = rclpy.time.Time().to_msg()
-            self._goal.header.frame_id = "map"
-
-            self._goal.positions_x = self.positions[:, 0].flatten().tolist() 
-            self._goal.positions_y = self.positions[:, 1].flatten().tolist() 
-            self._goal.angles_sin = self.angles[:, 0].flatten().tolist()
-            self._goal.angles_cos = self.angles[:, 1].flatten().tolist()
-            self._goal.target_tracking_velocity = data["target_tracking_velocity"]
-
-        self.task_completed = True
+        pose_array = PoseArray()
+        for xy, theta in zip(positions, angles):
+            pose = Pose()
+            pose.position.x = float(xy[0])
+            pose.position.y = float(xy[1])
+            pose.position.z = 0.0
+            pose.orientation.x = 0.0
+            pose.orientation.y = 0.0
+            pose.orientation.z = float(np.sin(theta / 2))
+            pose.orientation.w = float(np.cos(theta / 2))
+            pose_array.poses.append(pose)
+        return pose_array
 
     def log_publish(self):
-        return f"Published goal: {self.shape_type}"
+        return "Generated trajectory!"
 
-    def generate_circle(self, data):
-        radius = data["radius"]
-        num_points = data["num_points"]
-        offset = torch.tensor([self._task_cfg.trajectory_x_offset, self._task_cfg.trajectory_y_offset])
+    @property
+    def goal(self) -> PoseArray:
+        return self.generate_pose_array()
 
-        theta = torch.linspace(0, 2 * 3.1415926535897932384, steps=num_points)
-        self.positions = torch.stack([torch.cos(theta) * radius, torch.sin(theta) * radius], dim=-1) + offset
-        self.angles = torch.stack([-torch.sin(theta), torch.cos(theta)], dim=-1)
-
-    def generate_square(self, data):
-        pass
-
-    def generate_spiral(self, data):
-        pass
+    def reset(self):
+        self._is_done = False

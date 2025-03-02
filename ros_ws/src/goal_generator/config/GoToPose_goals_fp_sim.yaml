@@ -23,4 +23,4 @@ goals:
     qy: 0.0
     qz: 0.0
     qw: 1.0
-frame: "world"
+frame: "global"

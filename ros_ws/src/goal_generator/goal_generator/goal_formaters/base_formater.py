@@ -1,6 +1,5 @@
 from rclpy.qos import QoSProfile, QoSReliabilityPolicy, QoSHistoryPolicy
 import yaml
-import torch
 
 
 class BaseFormaterCfg:
@@ -29,7 +28,7 @@ class BaseFormater:
     @property
     def goal(self):
         return self._goal
-    
+
     @property
     def is_done(self):
         return self._is_done
@@ -44,6 +43,6 @@ class BaseFormater:
 
     def log_publish(self):
         raise NotImplementedError
-    
+
     def reset(self):
         raise NotImplementedError
