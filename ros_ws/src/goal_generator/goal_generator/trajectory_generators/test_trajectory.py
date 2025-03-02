@@ -22,6 +22,13 @@ plt.title("Accelerating Sinewave " + string_cfg)
 plt.scatter(xy[:, 0], xy[:, 1], color=rgba)
 plt.axis("equal")
 fig.savefig("accelerating_sinewave.png")
+# Plot angular trajectory
+fig = plt.figure(figsize=(8, 8))
+plt.title("Accelerating Sinewave " + string_cfg)
+plt.quiver(xy[:, 0], xy[:, 1], np.cos(angle), np.sin(angle), color=rgba)
+plt.axis("equal")
+fig.savefig("accelerating_sinewave_angle.png")
+plt.close("all")
 
 # Create bernouilli lemniscate trajectory
 name = "BernouilliLemniscate"
@@ -41,6 +48,13 @@ plt.title("Bernouilli Lemniscate " + string_cfg)
 plt.scatter(xy[:, 0], xy[:, 1], color=rgba)
 plt.axis("equal")
 fig.savefig("bernouilli_lemniscate.png")
+# Plot angular trajectory
+fig = plt.figure(figsize=(8, 8))
+plt.title("Bernouilli Lemniscate " + string_cfg)
+plt.quiver(xy[:, 0], xy[:, 1], np.cos(angle), np.sin(angle), color=rgba)
+plt.axis("equal")
+fig.savefig("bernouilli_lemniscate_angle.png")
+plt.close("all")
 
 # Create besace trajectory
 name = "Besace"
@@ -60,7 +74,13 @@ plt.title("Besace " + string_cfg)
 plt.scatter(xy[:, 0], xy[:, 1], color=rgba)
 plt.axis("equal")
 fig.savefig("besace.png")
-
+# Plot angular trajectory
+fig = plt.figure(figsize=(8, 8))
+plt.title("Besace " + string_cfg)
+plt.quiver(xy[:, 0], xy[:, 1], np.cos(angle), np.sin(angle), color=rgba)
+plt.axis("equal")
+fig.savefig("besace_angle.png")
+plt.close("all")
 
 # Create circle trajectory
 name = "Circle"
@@ -80,7 +100,13 @@ plt.title("Circle")
 plt.scatter(xy[:, 0], xy[:, 1], color=rgba)
 plt.axis("equal")
 fig.savefig("circle.png")
-
+# Plot angular trajectory
+fig = plt.figure(figsize=(8, 8))
+plt.title("Circle")
+plt.quiver(xy[:, 0], xy[:, 1], np.cos(angle), np.sin(angle), color=rgba)
+plt.axis("equal")
+fig.savefig("circle_angle.png")
+plt.close("all")
 
 # Create gerono lemniscate trajectory
 name = "GeronoLemniscate"
@@ -100,6 +126,13 @@ plt.title("Gerono Lemniscate " + string_cfg)
 plt.scatter(xy[:, 0], xy[:, 1], color=rgba)
 plt.axis("equal")
 fig.savefig("gerono_lemniscate.png")
+# Plot angular trajectory
+fig = plt.figure(figsize=(8, 8))
+plt.title("Gerono Lemniscate " + string_cfg)
+plt.quiver(xy[:, 0], xy[:, 1], np.cos(angle), np.sin(angle), color=rgba)
+plt.axis("equal")
+fig.savefig("gerono_lemniscate_angle.png")
+plt.close("all")
 
 # hippopede trajectory
 name = "Hippopede"
@@ -119,6 +152,13 @@ plt.title("Hippopede " + string_cfg)
 plt.scatter(xy[:, 0], xy[:, 1], color=rgba)
 plt.axis("equal")
 fig.savefig("hippopede.png")
+# Plot angular trajectory
+fig = plt.figure(figsize=(8, 8))
+plt.title("Hippopede " + string_cfg)
+plt.quiver(xy[:, 0], xy[:, 1], np.cos(angle), np.sin(angle), color=rgba)
+plt.axis("equal")
+fig.savefig("hippopede_angle.png")
+plt.close("all")
 
 # Create Hypotrochoid trajectory
 name = "Hypotrochoid"
@@ -138,6 +178,13 @@ plt.title("Hypotrochoid " + string_cfg)
 plt.scatter(xy[:, 0], xy[:, 1], color=rgba)
 plt.axis("equal")
 fig.savefig("hypotrochoid.png")
+# Plot angular trajectory
+fig = plt.figure(figsize=(8, 8))
+plt.title("Hypotrochoid " + string_cfg)
+plt.quiver(xy[:, 0], xy[:, 1], np.cos(angle), np.sin(angle), color=rgba)
+plt.axis("equal")
+fig.savefig("hypotrochoid_angle.png")
+plt.close("all")
 
 # Create Infinite Square trajectory
 name = "InfiniteSquare"
@@ -157,6 +204,13 @@ plt.title("Infinite Square " + string_cfg)
 plt.scatter(xy[:, 0], xy[:, 1], color=rgba)
 plt.axis("equal")
 fig.savefig("infinite_square.png")
+# Plot angular trajectory
+fig = plt.figure(figsize=(8, 8))
+plt.title("Infinite Square " + string_cfg)
+plt.quiver(xy[:, 0], xy[:, 1], np.cos(angle), np.sin(angle), color=rgba)
+plt.axis("equal")
+fig.savefig("infinite_square_angle.png")
+plt.close("all")
 
 # Create Lissajous trajectory
 name = "Lissajous"
@@ -176,6 +230,13 @@ plt.title("Lissajous " + string_cfg)
 plt.scatter(xy[:, 0], xy[:, 1], color=rgba)
 plt.axis("equal")
 fig.savefig("lissajous.png")
+# Plot angular trajectory
+fig = plt.figure(figsize=(8, 8))
+plt.title("Lissajous " + string_cfg)
+plt.quiver(xy[:, 0], xy[:, 1], np.cos(angle), np.sin(angle), color=rgba)
+plt.axis("equal")
+fig.savefig("lissajous_angle.png")
+plt.close("all")
 
 # Create NGon trajectory
 name = "NGon"
@@ -195,6 +256,13 @@ plt.title("NGon " + string_cfg)
 plt.scatter(xy[:, 0], xy[:, 1], color=rgba)
 plt.axis("equal")
 fig.savefig("ngon.png")
+# Plot angular trajectory
+fig = plt.figure(figsize=(8, 8))
+plt.title("NGon " + string_cfg)
+plt.quiver(xy[:, 0], xy[:, 1], np.cos(angle), np.sin(angle), color=rgba)
+plt.axis("equal")
+fig.savefig("ngon_angle.png")
+plt.close("all")
 
 # Create Sinewave trajectory
 name = "Sinewave"
@@ -214,6 +282,13 @@ plt.title("Sinewave " + string_cfg)
 plt.scatter(xy[:, 0], xy[:, 1], color=rgba)
 plt.axis("equal")
 fig.savefig("sinewave.png")
+# Plot angular trajectory
+fig = plt.figure(figsize=(8, 8))
+plt.title("Sinewave " + string_cfg)
+plt.quiver(xy[:, 0], xy[:, 1], np.cos(angle), np.sin(angle), color=rgba)
+plt.axis("equal")
+fig.savefig("sinewave_angle.png")
+plt.close("all")
 
 # Create Spiral trajectory
 name = "Spiral"
@@ -233,6 +308,13 @@ plt.title("Spiral " + string_cfg)
 plt.scatter(xy[:, 0], xy[:, 1], color=rgba)
 plt.axis("equal")
 fig.savefig("spiral.png")
+# Plot angular trajectory
+fig = plt.figure(figsize=(8, 8))
+plt.title("Spiral " + string_cfg)
+plt.quiver(xy[:, 0], xy[:, 1], np.cos(angle), np.sin(angle), color=rgba)
+plt.axis("equal")
+fig.savefig("spiral_angle.png")
+plt.close("all")
 
 # Create Square trajectory
 name = "Square"
@@ -252,3 +334,10 @@ plt.title("Square " + string_cfg)
 plt.scatter(xy[:, 0], xy[:, 1], color=rgba)
 plt.axis("equal")
 fig.savefig("square.png")
+# Plot angular trajectory
+fig = plt.figure(figsize=(8, 8))
+plt.title("Square " + string_cfg)
+plt.quiver(xy[:, 0], xy[:, 1], np.cos(angle), np.sin(angle), color=rgba)
+plt.axis("equal")
+fig.savefig("square_angle.png")
+plt.close("all")

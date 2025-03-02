@@ -21,7 +21,7 @@ class BaseTrajectory:
         if (self._trajectory is None) or (self._trajectory_angle is None):
             self.generate_trajectory()
             self.apply_trajectory_offset()
-            # self.reparametrize()
+            self.reparametrize()
         return self._trajectory, self._trajectory_angle
 
     def generate_trajectory(self) -> np.ndarray:
@@ -38,10 +38,21 @@ class BaseTrajectory:
         self._trajectory = np.stack((x_rot, y_rot), axis=1)
 
     def reparametrize(self) -> np.ndarray:
+        # Compute the cumulative distance along the trajectory
         s = np.cumsum(np.sqrt(np.sum(np.square(np.diff(self._trajectory, axis=0)), axis=1)))
-        interp = interp1d(s, self._trajectory, kind="linear")
-        num_points = s[-1] / self._cfg.point_distance
+        s = np.insert(s, 0, 0)
+        # Compute the tangent angle to the trajectory
+        dx = np.gradient(self._trajectory[:,0], s)
+        dy = np.gradient(self._trajectory[:,1], s)
+        self._trajectory_angle = np.arctan2(dy, dx)
+        # Interpolate the trajectory
+        x_interp = interp1d(s, self._trajectory[:,0], kind="linear")
+        y_interp = interp1d(s, self._trajectory[:,1], kind="linear")
+        num_points = int(s[-1] / self._cfg.point_distance)
         s_new = np.linspace(0, s[-1], num=num_points)
-        self._trajectory = interp(s_new)
+        x_new = x_interp(s_new)
+        y_new = y_interp(s_new)
+        self._trajectory = np.stack((x_new, y_new), axis=1)
+        # Interpolate the angle
         interp_angle = interp1d(s, self._trajectory_angle, kind="linear")
         self._trajectory_angle = interp_angle(s_new)
