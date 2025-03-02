@@ -114,3 +114,8 @@ class Logger:
             save_path = os.path.join(self._save_path, "logs", name)
             df = self.convert_buffer()
             df.to_csv(save_path + ".csv", sep=",", index=False, header=True)
+
+    def reset(self) -> None:
+        """Reset the logger."""
+        self.initialize()
+        self.build_logs()

@@ -222,6 +222,7 @@ class RLTaskNode(Node):
                 else:
                     self.get_logger().info("Resetting task.")
                     self._observation_formater.reset()
+                    self._data_logger.reset()
             self.get_logger().info("Waiting for goal...")
             wait_rate.sleep()
 
