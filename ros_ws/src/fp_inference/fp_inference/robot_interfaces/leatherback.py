@@ -2,19 +2,19 @@ from .base_robot_interface import BaseRobotInterface
 from . import Registerable
 
 from gymnasium import spaces
-from geometry_msgs.msg import Twist
+from ackermann_msgs.msg import AckermannDrive
 import torch
 import copy
 
 
-class TurtlebotInterface(Registerable, BaseRobotInterface):
-    """A class to interface with the turtlebot.
+class LeatherbackInterface(Registerable, BaseRobotInterface):
+    """A class to interface with the leatherback.
 
-    The interface is used to send commands to the turtlebot and log the actions taken.
+    The interface is used to send commands to the leatherback and log the actions taken.
     """
 
     def __init__(self, *args, device: str | None = None, **kwargs) -> None:
-        """Initialize the turtlebot interface.
+        """Initialize the leatherback interface.
 
         Args:
             device: The device to perform computations on. Defaults to None.
@@ -22,46 +22,45 @@ class TurtlebotInterface(Registerable, BaseRobotInterface):
         super().__init__(*args, device=device, **kwargs)
 
         # Type of ROS message
-        self.ROS_ACTION_TYPE = Twist
+        self.ROS_ACTION_TYPE = AckermannDrive
 
         # Last actions is set to 0
         self._last_actions = torch.zeros((1, 2), device=self._device)
         self._last_commands = torch.zeros((1, 2), device=self._device)
-        self.commands = Twist()
+        self.commands = AckermannDrive()
         actions = [0.0] * 2  # Everything off
-        self.commands.linear.x = actions[0]
-        self.commands.angular.z = actions[1]
+        self.commands.speed = actions[0]
+        self.commands.steering_angle = actions[1]
 
         # Action space
         self._action_space = spaces.Box(low=-1, high=1, shape=(2,))
         self._num_actions = 2
 
     @property
-    def kill_action(self) -> Twist:
+    def kill_action(self) -> AckermannDrive:
         """Return the kill action for the robot interface.
         
         This is the action called to shut down the robot and prepping it for the next task.
 
         Returns:
-            Twist: The kill action for the robot interface
+            AckermannDrive: The kill action for the robot interface.
         """
-        kill_command = Twist()
+        kill_command = AckermannDrive()
         actions = [0.0] * 2  # Everything off
-        self.commands.linear.x = actions[0]
-        self.commands.angular.z = actions[1]
+        self.commands.speed = actions[0]
+        self.commands.steering_angle = actions[1]
         return kill_command
 
     def build_logs(self) -> None:
         """Build the logs for the robot interface.
         
-        In this case, we log the thrusters firing.
+        In this case, we log the throttle and steering angle.
         """
         super().build_logs()
-        self._logs_specs["actions"] = [".linear_velocity", ".angular_velocity"]
-        self._logs_specs["commands"] = [".linear_velocity.m/s", ".angular_velocity.rad/s"]
+        self._logs_specs["actions"] = [".throttle", ".steering_angle"]
+        self._logs_specs["commands"] = [".throttle.m/s", ".steering_angle.rad"]
 
-
-    def cast_actions(self, actions) -> Twist:
+    def cast_actions(self, actions) -> AckermannDrive:
         """Cast the actions to the robot interface format.
 
         Args:
@@ -79,10 +78,10 @@ class TurtlebotInterface(Registerable, BaseRobotInterface):
         
         # Convert the actions to bytes message
         actions = actions[0].tolist()
-        self.commands.linear.x = actions[0] * 0.65
-        self.commands.angular.z = actions[1] * 0.9
-        self._last_commands[0,0] = self.commands.linear.x
-        self._last_commands[0,1] = self.commands.angular.z
+        self.commands.speed = actions[0] * 2.0
+        self.commands.steering_angle = actions[1] * 0.45
+        self._last_commands[0,0] = self.commands.speed
+        self._last_commands[0,1] = self.commands.steering_angle
 
         # Return the commands
         return self.commands
@@ -90,14 +89,13 @@ class TurtlebotInterface(Registerable, BaseRobotInterface):
     def reset(self) -> None:
         """Reset the robot interface.
         
-        This is called when the task is done and the robot needs to be reset for the
-        next task.
+        This is called when the task is done and the robot needs to be reset for the next task.
         """
         super().reset()
         self._last_actions = torch.zeros((1, 2), device=self._device)
         self._last_commands = torch.zeros((1, 2), device=self._device)
         # Kill everything on reset
         actions = [0.0] * 2  # Everything off
-        self.commands.linear.x = actions[0]
-        self.commands.angular.z = actions[1]
+        self.commands.speed = actions[0]
+        self.commands.steering_angle = actions[1]
         self.build_logs()
