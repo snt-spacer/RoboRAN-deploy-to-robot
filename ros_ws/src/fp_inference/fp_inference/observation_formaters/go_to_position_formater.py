@@ -113,9 +113,6 @@ class GoToPositionFormater(Registerable, BaseFormater):
             torch.cos(target_heading_w - self._state_preprocessor.heading),
         )
 
-        print("Target pos,", self._target_position)
-        print("Odom,", self._state_preprocessor.position[:, :2])
-
         self._task_data[:, 0] = self._dist
         self._task_data[:, 1] = torch.cos(self._target_heading_error)
         self._task_data[:, 2] = torch.sin(self._target_heading_error)

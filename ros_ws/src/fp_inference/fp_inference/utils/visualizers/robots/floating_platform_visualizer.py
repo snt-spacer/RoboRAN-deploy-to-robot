@@ -32,6 +32,7 @@ class FloatingPlatformVisualizer(BaseRobotVisualizer, Registerable):
     @BaseRobotVisualizer.register
     def plot_actions_multi(self) -> None:
         fig = plt.figure(figsize=(12, 8))
+        fig.suptitle('Thruster Actions')
         for i in range(0, 8):
             ax = fig.add_subplot(4, 2, i+1)
             color = hsv_to_rgb(i/8.0, 1.0, 1.0)
@@ -42,29 +43,31 @@ class FloatingPlatformVisualizer(BaseRobotVisualizer, Registerable):
         fig.tight_layout()
         plt.savefig(f'{self._folder}/actions_multi.png')
 
-    #@BaseRobotVisualizer.register
-    #def plot_commands(self):
-    #    fig = plt.figure(figsize=(10,5))
-    #    ax = fig.add_subplot(1, 1, 1)
-    #    for i in range(0, 8):
-    #        ax.plot(self._data['elapsed_time.s'], self._data['commands.t' + str(i)], label='Thruster ' + str(i) + ' Command')
-    #    ax.set_xlabel('Time (s)')
-    #    ax.set_ylabel('Command')
-    #    ax.set_title('Robot Commands')
-    #    ax.legend()
-    #    plt.savefig(f'{self._folder}/commands.png')
+    @BaseRobotVisualizer.register
+    def plot_commands(self):
+        fig = plt.figure(figsize=(10,5))
+        ax = fig.add_subplot(1, 1, 1)
+        for i in range(0, 8):
+            ax.plot(self._data['elapsed_time.s'], self._data['commands.t' + str(i)], label='Thruster ' + str(i) + ' Command')
+        ax.set_xlabel('Time (s)')
+        ax.set_ylabel('Command')
+        ax.set_title('Robot Commands')
+        ax.legend()
+        plt.savefig(f'{self._folder}/commands.png')
 
-    #@BaseRobotVisualizer.register
-    #def plot_commands_multi(self):
-    #    fig = plt.figure(figsize=(8, 12))
-    #    for i in range(0, 8):
-    #        ax = fig.add_subplot(4, 2, i+1)
-    #        color = hsv_to_rgb(i/8.0, 1.0, 1.0)
-    #        ax.plot(self._data['elapsed_time.s'], self._data['commands.t' + str(i)], label='Thruster ' + str(i) + ' Command', color=color)
-    #        ax.set_xlabel('Time (s)')
-    #        ax.set_ylabel('Command')
-    #        ax.set_title('Thruster ' + str(i) + ' Command')
-    #    plt.savefig(f'{self._folder}/commands_multi.png')
+    @BaseRobotVisualizer.register
+    def plot_commands_multi(self):
+        fig = plt.figure(figsize=(12, 8))
+        fig.suptitle('Thruster Commands')
+        for i in range(0, 8):
+            ax = fig.add_subplot(4, 2, i+1)
+            color = hsv_to_rgb(i/8.0, 1.0, 1.0)
+            ax.plot(self._data['elapsed_time.s'], self._data['commands.t' + str(i)], label='Thruster ' + str(i) + ' Command', color=color)
+            ax.set_xlabel('Time (s)')
+            ax.set_ylabel('Command')
+            ax.set_title('Thruster ' + str(i) + ' Command')
+        fig.tight_layout()
+        plt.savefig(f'{self._folder}/commands_multi.png')
 
     @BaseRobotVisualizer.register
     def plot_energy(self):
@@ -75,4 +78,5 @@ class FloatingPlatformVisualizer(BaseRobotVisualizer, Registerable):
         ax.set_ylabel('Energy')
         ax.set_title('Robot Normalized Energy Consumption')
         ax.legend()
+        ax.grid(visible=True)
         plt.savefig(f'{self._folder}/normalized_energy.png')

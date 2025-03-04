@@ -5,7 +5,7 @@ import numpy as np
 
 from . import BaseTaskVisualizer, Registerable
 
-class GoToPositionVisualizer(BaseTaskVisualizer, Registerable):
+class GoToPoseVisualizer(BaseTaskVisualizer, Registerable):
     def __init__(self, data: pd.DataFrame, folder: str) -> None:
         super().__init__(data, folder)
 
@@ -31,7 +31,8 @@ class GoToPositionVisualizer(BaseTaskVisualizer, Registerable):
         # Add the goal position
         target_pos_x = self._data['target_position.x.m'].iloc[-1]
         target_pos_y = self._data['target_position.y.m'].iloc[-1]
-        plt.scatter(target_pos_x, target_pos_y, color='r', facecolor='none', label='Goal Position', zorder=4)
+        target_heading = self._data['target_heading.rad'].iloc[-1]
+        plt.quiver(target_pos_x, target_pos_y, np.cos(target_heading), np.sin(target_heading), color='r', facecolor='none', label='Goal Pose', zorder=4)
         ax.set_xticks(np.arange(x_min, x_max + 1, 1))
         ax.set_yticks(np.arange(y_min, y_max + 1, 1))
         ax.grid(which='major', color='black', linewidth=1)
@@ -70,7 +71,8 @@ class GoToPositionVisualizer(BaseTaskVisualizer, Registerable):
         # Add the goal position
         target_pos_x = self._data['target_position.x.m'].iloc[-1]
         target_pos_y = self._data['target_position.y.m'].iloc[-1]
-        plt.scatter(target_pos_x, target_pos_y, color='r', facecolor='none', label='Goal Position', zorder=4)
+        target_heading = self._data['target_heading.rad'].iloc[-1]
+        plt.quiver(target_pos_x, target_pos_y, np.cos(target_heading), np.sin(target_heading), color='r', facecolor='none', label='Goal Pose', zorder=4)
         # Add the legend before adding the robot heading
         ax.legend()
         # Add the robot heading 20 points only
@@ -107,10 +109,11 @@ class GoToPositionVisualizer(BaseTaskVisualizer, Registerable):
         y_pos = np.array(self._data['position_world.y.m'])
         target_pos_x = self._data['target_position.x.m'].iloc[-1]
         target_pos_y = self._data['target_position.y.m'].iloc[-1]
+        target_heading = self._data['target_heading.rad'].iloc[-1]
         def update_trajectory(i):
             ax.clear()
             ax.plot(x_pos[:i], y_pos[:i], label='Robot Trajectory', color='b', zorder=3)
-            ax.scatter(target_pos_x, target_pos_y, color='r', facecolor='none', label='Goal Position', zorder=4)
+            ax.scatter(target_pos_x, target_pos_y, np.cos(target_heading), np.sin(target_heading), color='r', label='Goal Pose', zorder=4)
             ax.quiver(self._data['position_world.x.m'].iloc[i], self._data['position_world.y.m'].iloc[i], 
                       np.cos(self._data['heading_world.rad'].iloc[i]), np.sin(self._data['heading_world.rad'].iloc[i]),
                       color='b', label='Robot Heading',zorder=3)
@@ -162,6 +165,45 @@ class GoToPositionVisualizer(BaseTaskVisualizer, Registerable):
         ax.axhline(y=0.10, color='grey', linestyle='--', label='10cm threshold')
         # Draw a horizontal line at 0.05m
         ax.axhline(y=0.05, color='grey', linestyle='--', label='5cm threshold')
+        ax.set_yscale('log')
+        plt.savefig(f'{self._folder}/position_error_log.png')
+
+    @BaseTaskVisualizer.register
+    def plot_heading_error_with_helpers(self):
+        fig = plt.figure(figsize=(10,5))
+        ax = fig.add_subplot(1, 1, 1)
+        deg = self._data['heading_error.rad'] / np.pi * 180.0
+        ax.plot(self._data['elapsed_time.s'], deg, label='Angular Distance to Goal')
+        ax.set_xlabel('Time (s)')
+        ax.set_ylabel('Error ($^\circ$)')
+        ax.set_title('Angular Error')
+        ax.grid(visible=True)
+        ax.legend()
+        # Draw a horizontal line at 0.25m
+        ax.axhline(y=5.0, color='grey', linestyle='--', label='5$^\circ$ threshold')
+        # Draw a horizontal line at 0.10m
+        ax.axhline(y=2.5, color='grey', linestyle='--', label='2.5$^\circ$ threshold')
+        # Draw a horizontal line at 0.05m
+        ax.axhline(y=1.0, color='grey', linestyle='--', label='1$^\circ$ threshold')
+        plt.savefig(f'{self._folder}/position_error_log.png')
+
+    @BaseTaskVisualizer.register
+    def plot_heading_error_with_helpers_logs(self):
+        fig = plt.figure(figsize=(10,5))
+        ax = fig.add_subplot(1, 1, 1)
+        deg = self._data['heading_error.rad'] / np.pi * 180.0
+        ax.plot(self._data['elapsed_time.s'], deg, label='Angular Distance to Goal')
+        ax.set_xlabel('Time (s)')
+        ax.set_ylabel('Error ($^\circ$)')
+        ax.set_title('Angular Error')
+        ax.grid(visible=True)
+        ax.legend()
+        # Draw a horizontal line at 5 degrees
+        ax.axhline(y=5.0, color='grey', linestyle='--', label='5$^\circ$ threshold')
+        # Draw a horizontal line at 2.5 degrees
+        ax.axhline(y=2.5, color='grey', linestyle='--', label='2.5$^\circ$ threshold')
+        # Draw a horizontal line at 1 degree
+        ax.axhline(y=1.0, color='grey', linestyle='--', label='1$^\circ$ threshold')
         ax.set_yscale('log')
         plt.savefig(f'{self._folder}/position_error_log.png')
     

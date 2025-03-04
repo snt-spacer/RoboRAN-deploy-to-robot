@@ -76,7 +76,7 @@ class VirtualFloatingPlatformInterface(Registerable, BaseRobotInterface):
         # Convert the actions to bytes message
         actions = [1] + actions[0][self._remapping].int().tolist()
         self.commands.data = [value.to_bytes(1, byteorder="little") for value in actions]
-        self._last_commands[0] = self.commands.data
+        self._last_commands[0] = torch.tensor(actions[1:], dtype=torch.int, device=self._device)
 
         # Return the commands
         return self.commands

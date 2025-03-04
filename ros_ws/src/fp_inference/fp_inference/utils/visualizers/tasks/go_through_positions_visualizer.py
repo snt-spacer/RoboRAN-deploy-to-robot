@@ -5,7 +5,7 @@ import numpy as np
 
 from . import BaseTaskVisualizer, Registerable
 
-class GoToPositionVisualizer(BaseTaskVisualizer, Registerable):
+class GoThroughPositionsVisualizer(BaseTaskVisualizer, Registerable):
     def __init__(self, data: pd.DataFrame, folder: str) -> None:
         super().__init__(data, folder)
 
@@ -29,9 +29,12 @@ class GoToPositionVisualizer(BaseTaskVisualizer, Registerable):
         ax.set_ylabel('Y (m)')
         ax.set_title('Robot Trajectory')
         # Add the goal position
-        target_pos_x = self._data['target_position.x.m'].iloc[-1]
-        target_pos_y = self._data['target_position.y.m'].iloc[-1]
-        plt.scatter(target_pos_x, target_pos_y, color='r', facecolor='none', label='Goal Position', zorder=4)
+        target_pos_x = np.array(self._data['target_position.x.m'])
+        target_pos_y = np.array(self._data['target_position.y.m'])
+        target_pos = np.stack([target_pos_x, target_pos_y], axis=1)
+        # Get unique target positions
+        unique_target_pos = np.unique(target_pos, axis=0)
+        plt.scatter(unique_target_pos[:,0], unique_target_pos[:,1], color='r', facecolor='none', label='Goal Position', zorder=4)
         ax.set_xticks(np.arange(x_min, x_max + 1, 1))
         ax.set_yticks(np.arange(y_min, y_max + 1, 1))
         ax.grid(which='major', color='black', linewidth=1)
@@ -68,9 +71,12 @@ class GoToPositionVisualizer(BaseTaskVisualizer, Registerable):
         ax.set_yticks(np.arange(y_min, y_max + 0.25, 0.25), minor=True)
         ax.grid(which='minor', color='gray', linewidth=0.5, linestyle='--')
         # Add the goal position
-        target_pos_x = self._data['target_position.x.m'].iloc[-1]
-        target_pos_y = self._data['target_position.y.m'].iloc[-1]
-        plt.scatter(target_pos_x, target_pos_y, color='r', facecolor='none', label='Goal Position', zorder=4)
+        target_pos_x = np.array(self._data['target_position.x.m'])
+        target_pos_y = np.array(self._data['target_position.y.m'])
+        target_pos = np.stack([target_pos_x, target_pos_y], axis=1)
+        # Get unique target positions
+        unique_target_pos = np.unique(target_pos, axis=0)
+        plt.scatter(unique_target_pos[:,0], unique_target_pos[:,1], color='r', facecolor='none', label='Goal Position', zorder=4)
         # Add the legend before adding the robot heading
         ax.legend()
         # Add the robot heading 20 points only
@@ -105,12 +111,15 @@ class GoToPositionVisualizer(BaseTaskVisualizer, Registerable):
         # Make the update function
         x_pos = np.array(self._data['position_world.x.m'])
         y_pos = np.array(self._data['position_world.y.m'])
-        target_pos_x = self._data['target_position.x.m'].iloc[-1]
-        target_pos_y = self._data['target_position.y.m'].iloc[-1]
+        target_pos_x = np.array(self._data['target_position.x.m'])
+        target_pos_y = np.array(self._data['target_position.y.m'])
+        target_pos = np.stack([target_pos_x, target_pos_y], axis=1)
+        # Get unique target positions
+        unique_target_pos = np.unique(target_pos, axis=0)
         def update_trajectory(i):
             ax.clear()
             ax.plot(x_pos[:i], y_pos[:i], label='Robot Trajectory', color='b', zorder=3)
-            ax.scatter(target_pos_x, target_pos_y, color='r', facecolor='none', label='Goal Position', zorder=4)
+            ax.scatter(unique_target_pos[:,0], unique_target_pos[:,1], color='r', facecolor='none', label='Goal Position', zorder=4)
             ax.quiver(self._data['position_world.x.m'].iloc[i], self._data['position_world.y.m'].iloc[i], 
                       np.cos(self._data['heading_world.rad'].iloc[i]), np.sin(self._data['heading_world.rad'].iloc[i]),
                       color='b', label='Robot Heading',zorder=3)

@@ -50,14 +50,6 @@ class RobotVisualizerFactory:
         if cls_name not in cls.registry:
             raise ValueError(f"Module {cls_name} not registered. Available modules: {cls.registry.keys()}")
 
-        print("=============================================")
-        print("Creating goal formater {} with args:".format(cls_name))
-        print("Args:")
-        [print(arg) for arg in args]
-        print("Kwargs:")
-        [print(f" +{key}: {value}") for key, value in kwargs.items()]
-        print("=============================================")
-
         return cls.registry[cls_name](*args, **kwargs)
 
 from .turtlebot_visualizer import TurtlebotVisualizer

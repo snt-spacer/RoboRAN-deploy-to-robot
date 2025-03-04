@@ -50,4 +50,5 @@ class LeatherbackVisualizer(BaseRobotVisualizer, Registerable):
         ax.set_ylabel('Energy')
         ax.set_title('Robot Normalized Energy Consumption')
         ax.legend()
+        ax.grid(visible=True)
         plt.savefig(f'{self._folder}/normalized_energy.png')
