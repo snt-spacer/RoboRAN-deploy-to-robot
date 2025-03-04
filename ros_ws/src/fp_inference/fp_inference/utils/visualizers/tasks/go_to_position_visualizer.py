@@ -41,6 +41,7 @@ class GoToPositionVisualizer(BaseTaskVisualizer, Registerable):
         ax.axis('equal')
         ax.legend()
         plt.savefig(f'{self._folder}/trajectory.png')
+        plt.close(fig)
 
     @BaseTaskVisualizer.register
     def plot_trajectory_with_heading(self) -> None:
@@ -80,6 +81,7 @@ class GoToPositionVisualizer(BaseTaskVisualizer, Registerable):
                   color='royalblue', label='Robot Heading', zorder=3)
         ax.axis('equal')
         plt.savefig(f'{self._folder}/trajectory_with_heading.png')
+        plt.close(fig)
 
     @BaseTaskVisualizer.register
     def make_trajectory_video(self):
@@ -124,6 +126,7 @@ class GoToPositionVisualizer(BaseTaskVisualizer, Registerable):
 
         ani = animation.FuncAnimation(fig, update_trajectory, frames=len(self._data), interval=5)
         ani.save(f'{self._folder}/trajectory.mp4')
+        plt.close(fig)
         
 
     @BaseTaskVisualizer.register
@@ -145,6 +148,7 @@ class GoToPositionVisualizer(BaseTaskVisualizer, Registerable):
         # Draw a horizontal line at 0.05m
         ax.axhline(y=0.05, color='k', linestyle='--', label='5cm threshold')
         plt.savefig(f'{self._folder}/position_error.png')
+        plt.close(fig)
 
     @BaseTaskVisualizer.register
     def plot_position_error_with_helpers_log(self):
@@ -164,6 +168,7 @@ class GoToPositionVisualizer(BaseTaskVisualizer, Registerable):
         ax.axhline(y=0.05, color='grey', linestyle='--', label='5cm threshold')
         ax.set_yscale('log')
         plt.savefig(f'{self._folder}/position_error_log.png')
+        plt.close(fig)
     
     @BaseTaskVisualizer.register
     def plot_velocity(self):
@@ -192,3 +197,4 @@ class GoToPositionVisualizer(BaseTaskVisualizer, Registerable):
         fig.tight_layout()
 
         plt.savefig(f'{self._folder}/linear_velocity.png')
+        plt.close(fig)

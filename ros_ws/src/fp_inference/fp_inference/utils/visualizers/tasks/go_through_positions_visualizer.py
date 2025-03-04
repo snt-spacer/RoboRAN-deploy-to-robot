@@ -44,6 +44,7 @@ class GoThroughPositionsVisualizer(BaseTaskVisualizer, Registerable):
         ax.axis('equal')
         ax.legend()
         plt.savefig(f'{self._folder}/trajectory.png')
+        plt.close(fig)
 
     @BaseTaskVisualizer.register
     def plot_trajectory_with_heading(self) -> None:
@@ -86,6 +87,7 @@ class GoThroughPositionsVisualizer(BaseTaskVisualizer, Registerable):
                   color='royalblue', label='Robot Heading', zorder=3)
         ax.axis('equal')
         plt.savefig(f'{self._folder}/trajectory_with_heading.png')
+        plt.close(fig)
 
     @BaseTaskVisualizer.register
     def make_trajectory_video(self):
@@ -133,6 +135,7 @@ class GoThroughPositionsVisualizer(BaseTaskVisualizer, Registerable):
 
         ani = animation.FuncAnimation(fig, update_trajectory, frames=len(self._data), interval=5)
         ani.save(f'{self._folder}/trajectory.mp4')
+        plt.close(fig)
         
 
     @BaseTaskVisualizer.register
@@ -154,6 +157,7 @@ class GoThroughPositionsVisualizer(BaseTaskVisualizer, Registerable):
         # Draw a horizontal line at 0.05m
         ax.axhline(y=0.05, color='k', linestyle='--', label='5cm threshold')
         plt.savefig(f'{self._folder}/position_error.png')
+        plt.close(fig)
 
     @BaseTaskVisualizer.register
     def plot_position_error_with_helpers_log(self):
@@ -173,6 +177,7 @@ class GoThroughPositionsVisualizer(BaseTaskVisualizer, Registerable):
         ax.axhline(y=0.05, color='grey', linestyle='--', label='5cm threshold')
         ax.set_yscale('log')
         plt.savefig(f'{self._folder}/position_error_log.png')
+        plt.close(fig)
     
     @BaseTaskVisualizer.register
     def plot_velocity(self):
@@ -201,3 +206,20 @@ class GoThroughPositionsVisualizer(BaseTaskVisualizer, Registerable):
         fig.tight_layout()
 
         plt.savefig(f'{self._folder}/linear_velocity.png')
+        plt.close(fig)
+
+    @BaseTaskVisualizer.register
+    def plot_goal_distances(self):
+        fig = plt.figure(figsize=(10,5))
+        ax = fig.add_subplot(1, 1, 1)
+        ax.plot(self._data['elapsed_time.s'], self._data['distance_error.m'], label='Goal 0 Distance')
+        ax.plot(self._data['elapsed_time.s'], self._data['task_data.goal_1_dist.m'], label='Goal 1 Distance')
+        ax.set_xlabel('Time (s)')
+        ax.set_ylabel('Error (m)')
+        ax.set_title('Position Error')
+        ax.grid(visible=True)
+        ax.grid(linestyle = '--', linewidth = 0.5)
+
+        ax.legend()
+        plt.savefig(f'{self._folder}/Goal_distance.png')
+        plt.close(fig)

@@ -71,12 +71,12 @@ class GoThroughPositionsFormater(Registerable, BaseFormater):
         self._logs_specs["target_position"] = [".x.m", ".y.m"]
         self._logs_specs["num_goals_reached"] = [".u"]
         self._logs_specs["task_data"] = [
-            ".dist.m",
-            ".cos(heading).u",
-            ".sin(heading).u",
             ".lin_vel_body.x.m/s",
             ".lin_vel_body.y.m/s",
             ".ang_vel_body.rad/s",
+            ".dist.m",
+            ".cos(heading).u",
+            ".sin(heading).u",
         ]
         for i in range(self._task_cfg.num_goals_in_obs - 1):
             self._logs_specs["task_data"] += [
@@ -166,9 +166,15 @@ class GoThroughPositionsFormater(Registerable, BaseFormater):
                 torch.cos(target_heading_w - heading),
             )
             # If the task is not set to loop, we set the next goal to be 0.
-            if not self._task_cfg.loop_through_goals:
-                goal_distance = goal_distance * (not overflowing)
-                target_heading_error = target_heading_error * (not overflowing)
+            if self._task_cfg.loop_through_goals:
+                goal_distance = goal_distance
+                target_heading_error = target_heading_error
+            else:
+                goal_distance = goal_distance * (overflowing)
+                target_heading_error = target_heading_error * (overflowing)
+            #if not self._task_cfg.loop_through_goals and overflowing:
+            #    goal_distance = goal_distance * (not overflowing)
+            #    target_heading_error = target_heading_error * (not overflowing)
             # Add to buffer
             self._task_data[:, 6 + 3 * i] = goal_distance
             self._task_data[:, 7 + 3 * i] = torch.cos(target_heading_error)

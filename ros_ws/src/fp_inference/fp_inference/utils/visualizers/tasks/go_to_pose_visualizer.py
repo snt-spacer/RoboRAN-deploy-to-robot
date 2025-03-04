@@ -32,7 +32,7 @@ class GoToPoseVisualizer(BaseTaskVisualizer, Registerable):
         target_pos_x = self._data['target_position.x.m'].iloc[-1]
         target_pos_y = self._data['target_position.y.m'].iloc[-1]
         target_heading = self._data['target_heading.rad'].iloc[-1]
-        plt.quiver(target_pos_x, target_pos_y, np.cos(target_heading), np.sin(target_heading), color='r', facecolor='none', label='Goal Pose', zorder=4)
+        plt.quiver(target_pos_x, target_pos_y, np.cos(target_heading), np.sin(target_heading), color='r', label='Goal Pose', zorder=4)
         ax.set_xticks(np.arange(x_min, x_max + 1, 1))
         ax.set_yticks(np.arange(y_min, y_max + 1, 1))
         ax.grid(which='major', color='black', linewidth=1)
@@ -42,6 +42,7 @@ class GoToPoseVisualizer(BaseTaskVisualizer, Registerable):
         ax.axis('equal')
         ax.legend()
         plt.savefig(f'{self._folder}/trajectory.png')
+        plt.close(fig)
 
     @BaseTaskVisualizer.register
     def plot_trajectory_with_heading(self) -> None:
@@ -72,7 +73,7 @@ class GoToPoseVisualizer(BaseTaskVisualizer, Registerable):
         target_pos_x = self._data['target_position.x.m'].iloc[-1]
         target_pos_y = self._data['target_position.y.m'].iloc[-1]
         target_heading = self._data['target_heading.rad'].iloc[-1]
-        plt.quiver(target_pos_x, target_pos_y, np.cos(target_heading), np.sin(target_heading), color='r', facecolor='none', label='Goal Pose', zorder=4)
+        plt.quiver(target_pos_x, target_pos_y, np.cos(target_heading), np.sin(target_heading), color='r', label='Goal Pose', zorder=4)
         # Add the legend before adding the robot heading
         ax.legend()
         # Add the robot heading 20 points only
@@ -82,6 +83,7 @@ class GoToPoseVisualizer(BaseTaskVisualizer, Registerable):
                   color='royalblue', label='Robot Heading', zorder=3)
         ax.axis('equal')
         plt.savefig(f'{self._folder}/trajectory_with_heading.png')
+        plt.close(fig)
 
     @BaseTaskVisualizer.register
     def make_trajectory_video(self):
@@ -113,7 +115,7 @@ class GoToPoseVisualizer(BaseTaskVisualizer, Registerable):
         def update_trajectory(i):
             ax.clear()
             ax.plot(x_pos[:i], y_pos[:i], label='Robot Trajectory', color='b', zorder=3)
-            ax.scatter(target_pos_x, target_pos_y, np.cos(target_heading), np.sin(target_heading), color='r', label='Goal Pose', zorder=4)
+            ax.quiver(target_pos_x, target_pos_y, np.cos(target_heading), np.sin(target_heading), color='r', label='Goal Pose', zorder=4)
             ax.quiver(self._data['position_world.x.m'].iloc[i], self._data['position_world.y.m'].iloc[i], 
                       np.cos(self._data['heading_world.rad'].iloc[i]), np.sin(self._data['heading_world.rad'].iloc[i]),
                       color='b', label='Robot Heading',zorder=3)
@@ -127,6 +129,7 @@ class GoToPoseVisualizer(BaseTaskVisualizer, Registerable):
 
         ani = animation.FuncAnimation(fig, update_trajectory, frames=len(self._data), interval=5)
         ani.save(f'{self._folder}/trajectory.mp4')
+        plt.close(fig)
         
 
     @BaseTaskVisualizer.register
@@ -148,6 +151,7 @@ class GoToPoseVisualizer(BaseTaskVisualizer, Registerable):
         # Draw a horizontal line at 0.05m
         ax.axhline(y=0.05, color='k', linestyle='--', label='5cm threshold')
         plt.savefig(f'{self._folder}/position_error.png')
+        plt.close(fig)
 
     @BaseTaskVisualizer.register
     def plot_position_error_with_helpers_log(self):
@@ -167,6 +171,7 @@ class GoToPoseVisualizer(BaseTaskVisualizer, Registerable):
         ax.axhline(y=0.05, color='grey', linestyle='--', label='5cm threshold')
         ax.set_yscale('log')
         plt.savefig(f'{self._folder}/position_error_log.png')
+        plt.close(fig)
 
     @BaseTaskVisualizer.register
     def plot_heading_error_with_helpers(self):
@@ -186,6 +191,7 @@ class GoToPoseVisualizer(BaseTaskVisualizer, Registerable):
         # Draw a horizontal line at 0.05m
         ax.axhline(y=1.0, color='grey', linestyle='--', label='1$^\circ$ threshold')
         plt.savefig(f'{self._folder}/position_error_log.png')
+        plt.close(fig)
 
     @BaseTaskVisualizer.register
     def plot_heading_error_with_helpers_logs(self):
@@ -206,6 +212,7 @@ class GoToPoseVisualizer(BaseTaskVisualizer, Registerable):
         ax.axhline(y=1.0, color='grey', linestyle='--', label='1$^\circ$ threshold')
         ax.set_yscale('log')
         plt.savefig(f'{self._folder}/position_error_log.png')
+        plt.close(fig)
     
     @BaseTaskVisualizer.register
     def plot_velocity(self):
@@ -234,3 +241,4 @@ class GoToPoseVisualizer(BaseTaskVisualizer, Registerable):
         fig.tight_layout()
 
         plt.savefig(f'{self._folder}/linear_velocity.png')
+        plt.close(fig)

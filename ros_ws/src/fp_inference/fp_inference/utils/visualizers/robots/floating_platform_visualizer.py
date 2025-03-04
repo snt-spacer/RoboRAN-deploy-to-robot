@@ -28,6 +28,7 @@ class FloatingPlatformVisualizer(BaseRobotVisualizer, Registerable):
         ax.set_title('Robot Commands')
         ax.legend()
         plt.savefig(f'{self._folder}/actions.png')
+        plt.close(fig)
 
     @BaseRobotVisualizer.register
     def plot_actions_multi(self) -> None:
@@ -42,6 +43,7 @@ class FloatingPlatformVisualizer(BaseRobotVisualizer, Registerable):
             ax.set_title('Thruster ' + str(i) + ' Command')
         fig.tight_layout()
         plt.savefig(f'{self._folder}/actions_multi.png')
+        plt.close(fig)
 
     @BaseRobotVisualizer.register
     def plot_commands(self):
@@ -54,6 +56,7 @@ class FloatingPlatformVisualizer(BaseRobotVisualizer, Registerable):
         ax.set_title('Robot Commands')
         ax.legend()
         plt.savefig(f'{self._folder}/commands.png')
+        plt.close(fig)
 
     @BaseRobotVisualizer.register
     def plot_commands_multi(self):
@@ -68,6 +71,7 @@ class FloatingPlatformVisualizer(BaseRobotVisualizer, Registerable):
             ax.set_title('Thruster ' + str(i) + ' Command')
         fig.tight_layout()
         plt.savefig(f'{self._folder}/commands_multi.png')
+        plt.close(fig)
 
     @BaseRobotVisualizer.register
     def plot_energy(self):
@@ -80,3 +84,4 @@ class FloatingPlatformVisualizer(BaseRobotVisualizer, Registerable):
         ax.legend()
         ax.grid(visible=True)
         plt.savefig(f'{self._folder}/normalized_energy.png')
+        plt.close(fig)

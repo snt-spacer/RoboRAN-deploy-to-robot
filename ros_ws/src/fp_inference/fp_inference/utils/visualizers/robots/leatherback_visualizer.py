@@ -28,6 +28,7 @@ class LeatherbackVisualizer(BaseRobotVisualizer, Registerable):
         ax.set_title('Robot Commands')
         ax.legend()
         plt.savefig(f'{self._folder}/commands.png')
+        plt.close(fig)
 
     @BaseRobotVisualizer.register
     def plot_commands(self):
@@ -40,6 +41,7 @@ class LeatherbackVisualizer(BaseRobotVisualizer, Registerable):
         ax.set_title('Robot Commands')
         ax.legend()
         plt.savefig(f'{self._folder}/commands.png')
+        plt.close(fig)
 
     @BaseRobotVisualizer.register
     def plot_energy(self):
@@ -52,3 +54,4 @@ class LeatherbackVisualizer(BaseRobotVisualizer, Registerable):
         ax.legend()
         ax.grid(visible=True)
         plt.savefig(f'{self._folder}/normalized_energy.png')
+        plt.close(fig)
