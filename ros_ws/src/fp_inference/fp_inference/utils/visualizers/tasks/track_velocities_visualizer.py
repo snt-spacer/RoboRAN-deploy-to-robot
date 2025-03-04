@@ -119,7 +119,8 @@ class TrackVelocitiesVisualizer(BaseTaskVisualizer, Registerable):
         def update_trajectory(i):
             ax.clear()
             ax.plot(x_pos[:i], y_pos[:i], label='Robot Trajectory', color='b', zorder=3)
-            ax.scatter(unique_target_pos[:,0], unique_target_pos[:,1], color='r', facecolor='none', label='Goal Position', zorder=4)
+            ax.scatter(target_pos[:i,0], target_pos[:i,1], color='grey', facecolor='none', label='Goal Position', zorder=4)
+            ax.scatter(target_pos[i,0], target_pos[i,1], color='r', facecolor='none', label='Goal Position', zorder=5)
             ax.quiver(self._data['position_world.x.m'].iloc[i], self._data['position_world.y.m'].iloc[i], 
                       np.cos(self._data['heading_world.rad'].iloc[i]), np.sin(self._data['heading_world.rad'].iloc[i]),
                       color='b', label='Robot Heading',zorder=3)
@@ -135,69 +136,69 @@ class TrackVelocitiesVisualizer(BaseTaskVisualizer, Registerable):
         ani.save(f'{self._folder}/trajectory.mp4')
         
 
-    @BaseTaskVisualizer.register
-    def plot_position_error_with_helpers(self):
-        fig = plt.figure(figsize=(10,5))
-        ax = fig.add_subplot(1, 1, 1)
-        ax.plot(self._data['elapsed_time.s'], self._data['distance_error.m'], label='Distance to Goal')
-        ax.set_xlabel('Time (s)')
-        ax.set_ylabel('Error (m)')
-        ax.set_title('Position Error')
-        ax.grid(visible=True)
-        ax.grid(linestyle = '--', linewidth = 0.5)
+    #@BaseTaskVisualizer.register
+    #def plot_position_error_with_helpers(self):
+    #    fig = plt.figure(figsize=(10,5))
+    #    ax = fig.add_subplot(1, 1, 1)
+    #    ax.plot(self._data['elapsed_time.s'], self._data['distance_error.m'], label='Distance to Goal')
+    #    ax.set_xlabel('Time (s)')
+    #    ax.set_ylabel('Error (m)')
+    #    ax.set_title('Position Error')
+    #    ax.grid(visible=True)
+    #    ax.grid(linestyle = '--', linewidth = 0.5)
 
-        ax.legend()
-        # Draw a horizontal line at 0.25m
-        ax.axhline(y=0.25, color='k', linestyle='--', label='25cm threshold')
-        # Draw a horizontal line at 0.10m
-        ax.axhline(y=0.10, color='k', linestyle='--', label='10cm threshold')
-        # Draw a horizontal line at 0.05m
-        ax.axhline(y=0.05, color='k', linestyle='--', label='5cm threshold')
-        plt.savefig(f'{self._folder}/position_error.png')
+    #    ax.legend()
+    #    # Draw a horizontal line at 0.25m
+    #    ax.axhline(y=0.25, color='k', linestyle='--', label='25cm threshold')
+    #    # Draw a horizontal line at 0.10m
+    #    ax.axhline(y=0.10, color='k', linestyle='--', label='10cm threshold')
+    #    # Draw a horizontal line at 0.05m
+    #    ax.axhline(y=0.05, color='k', linestyle='--', label='5cm threshold')
+    #    plt.savefig(f'{self._folder}/position_error.png')
 
-    @BaseTaskVisualizer.register
-    def plot_position_error_with_helpers_log(self):
-        fig = plt.figure(figsize=(10,5))
-        ax = fig.add_subplot(1, 1, 1)
-        ax.plot(self._data['elapsed_time.s'], self._data['distance_error.m'], label='Distance to Goal')
-        ax.set_xlabel('Time (s)')
-        ax.set_ylabel('Error (m)')
-        ax.set_title('Position Error')
-        ax.grid(visible=True)
-        ax.legend()
-        # Draw a horizontal line at 0.25m
-        ax.axhline(y=0.25, color='grey', linestyle='--', label='25cm threshold')
-        # Draw a horizontal line at 0.10m
-        ax.axhline(y=0.10, color='grey', linestyle='--', label='10cm threshold')
-        # Draw a horizontal line at 0.05m
-        ax.axhline(y=0.05, color='grey', linestyle='--', label='5cm threshold')
-        ax.set_yscale('log')
-        plt.savefig(f'{self._folder}/position_error_log.png')
+    #@BaseTaskVisualizer.register
+    #def plot_position_error_with_helpers_log(self):
+    #    fig = plt.figure(figsize=(10,5))
+    #    ax = fig.add_subplot(1, 1, 1)
+    #    ax.plot(self._data['elapsed_time.s'], self._data['distance_error.m'], label='Distance to Goal')
+    #    ax.set_xlabel('Time (s)')
+    #    ax.set_ylabel('Error (m)')
+    #    ax.set_title('Position Error')
+    #    ax.grid(visible=True)
+    #    ax.legend()
+    #    # Draw a horizontal line at 0.25m
+    #    ax.axhline(y=0.25, color='grey', linestyle='--', label='25cm threshold')
+    #    # Draw a horizontal line at 0.10m
+    #    ax.axhline(y=0.10, color='grey', linestyle='--', label='10cm threshold')
+    #    # Draw a horizontal line at 0.05m
+    #    ax.axhline(y=0.05, color='grey', linestyle='--', label='5cm threshold')
+    #    ax.set_yscale('log')
+    #    plt.savefig(f'{self._folder}/position_error_log.png')
     
-    @BaseTaskVisualizer.register
-    def plot_velocity(self):
-        fig = plt.figure(figsize=(10,5))
-        fig.suptitle('Robot Body Velocities')
-        ax = fig.add_subplot(2, 1, 1)
-        ax.plot(self._data['elapsed_time.s'], self._data['linear_velocities_body.x.m/s'], label='body linear velocity')
-        ax.plot(self._data['elapsed_time.s'], self._data['linear_velocities_body.y.m/s'], label='body lateral velocity')
-        ax.set_xlabel('Time (s)')
-        ax.set_ylabel('Linear Velocities (m/s)')
-        ax.set_title('Linear Velocities')
-        # Add a grid
-        ax.grid(visible=True)
-        ax.legend()
-        # Add a 0 line in a grey color
-        ax.axhline(y=0, color='grey', linestyle='--')
-        ax = fig.add_subplot(2, 1, 2)
-        ax.plot(self._data['elapsed_time.s'], self._data['angular_velocities_body.z.rad/s'], label='body angular velocity')
-        ax.set_xlabel('Time (s)')
-        ax.set_ylabel('Angular Velocity (rad/s)')
-        ax.set_title('Angular Velocity')
-        ax.grid(visible=True)
-        ax.legend()
-        # Add a 0 line in a grey color
-        ax.axhline(y=0, color='grey', linestyle='--')
-        fig.tight_layout()
+    #@BaseTaskVisualizer.register
+    #def plot_velocity(self):
+    #    fig = plt.figure(figsize=(10,5))
+    #    fig.suptitle('Robot Body Velocities')
+    #    ax = fig.add_subplot(2, 1, 1)
+    #    ax.plot(self._data['elapsed_time.s'], self._data['linear_velocities_body.x.m/s'], label='body linear velocity')
+    #    ax.plot(self._data['elapsed_time.s'], self._data['linear_velocities_body.y.m/s'], label='body lateral velocity')
+    #    ax.set_xlabel('Time (s)')
+    #    ax.set_ylabel('Linear Velocities (m/s)')
+    #    ax.set_title('Linear Velocities')
+    #    # Add a grid
+    #    ax.grid(visible=True)
+    #    ax.legend()
+    #    # Add a 0 line in a grey color
+    #    ax.axhline(y=0, color='grey', linestyle='--')
+    #    ax = fig.add_subplot(2, 1, 2)
+    #    ax.plot(self._data['elapsed_time.s'], self._data['angular_velocities_body.z.rad/s'], label='body angular velocity')
+    #    ax.set_xlabel('Time (s)')
+    #    ax.set_ylabel('Angular Velocity (rad/s)')
+    #    ax.set_title('Angular Velocity')
+    #    ax.grid(visible=True)
+    #    ax.legend()
+    #    # Add a 0 line in a grey color
+    #    ax.axhline(y=0, color='grey', linestyle='--')
+    #    fig.tight_layout()
 
-        plt.savefig(f'{self._folder}/linear_velocity.png')
+    #    plt.savefig(f'{self._folder}/linear_velocity.png')

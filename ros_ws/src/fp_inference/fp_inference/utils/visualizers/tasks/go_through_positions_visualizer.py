@@ -9,12 +9,12 @@ class GoThroughPositionsVisualizer(BaseTaskVisualizer, Registerable):
     def __init__(self, data: pd.DataFrame, folder: str) -> None:
         super().__init__(data, folder)
 
-    @BaseTaskVisualizer.register
-    def plot_trajectory(self) -> None:
-        fig = plt.figure(figsize=(8,8))
+    def generate_zero_traj(self):
+        x = np.array(self._data['position_world.x.m'])
+        y = np.array(self._data['position_world.y.m'])
         # Compute the limits of the plot
-        x_min, x_max = self._data['position_world.x.m'].min(), self._data['position_world.x.m'].max()
-        y_min, y_max = self._data['position_world.y.m'].min(), self._data['position_world.y.m'].max()
+        x_min, x_max = x.min(), x.max()
+        y_min, y_max = y.min(), y.max()
         # Add 30% padding
         dx = x_max - x_min
         dy = y_max - y_min
@@ -22,9 +22,25 @@ class GoThroughPositionsVisualizer(BaseTaskVisualizer, Registerable):
         x_max += np.floor(0.15 * dx)
         y_min -= np.ceil(0.15 * dy)
         y_max += np.ceil(0.15 * dy)
+        # Equalize X and Y limits
+        dx = x_max - x_min
+        dy = y_max - y_min
+        x_center = (x_min + x_max) / 2
+        y_center = (y_min + y_max) / 2
+        dxy = max(dx, dy)
+        x_min = np.floor(x_center - dxy / 2)
+        x_max = np.ceil(x_center + dxy / 2)
+        y_min = np.floor(y_center - dxy / 2)
+        y_max = np.ceil(y_center + dxy / 2)
+        return x, y, x_min, x_max, y_min, y_max
+
+    @BaseTaskVisualizer.register
+    def plot_trajectory(self) -> None:
+        fig = plt.figure(figsize=(8,8))
+        x, y, x_min, x_max, y_min, y_max = self.generate_zero_traj()
         # Plot the trajectory of the robot
         ax = fig.add_subplot(1, 1, 1)
-        ax.plot(self._data['position_world.x.m'], self._data['position_world.y.m'], label='Robot Trajectory', color='royalblue', zorder=3)
+        ax.plot(x, y, label='Robot Trajectory', color='royalblue', zorder=3)
         ax.set_xlabel('X (m)')
         ax.set_ylabel('Y (m)')
         ax.set_title('Robot Trajectory')
@@ -34,7 +50,7 @@ class GoThroughPositionsVisualizer(BaseTaskVisualizer, Registerable):
         target_pos = np.stack([target_pos_x, target_pos_y], axis=1)
         # Get unique target positions
         unique_target_pos = np.unique(target_pos, axis=0)
-        plt.scatter(unique_target_pos[:,0], unique_target_pos[:,1], color='r', facecolor='none', label='Goal Position', zorder=4)
+        plt.scatter(unique_target_pos[:,0], unique_target_pos[:,1], color='r', facecolor='none', label='Goal Positions', zorder=4)
         ax.set_xticks(np.arange(x_min, x_max + 1, 1))
         ax.set_yticks(np.arange(y_min, y_max + 1, 1))
         ax.grid(which='major', color='black', linewidth=1)
@@ -50,18 +66,10 @@ class GoThroughPositionsVisualizer(BaseTaskVisualizer, Registerable):
     def plot_trajectory_with_heading(self) -> None:
         fig = plt.figure(figsize=(8,8))
         # Compute the limits of the plot
-        x_min, x_max = self._data['position_world.x.m'].min(), self._data['position_world.x.m'].max()
-        y_min, y_max = self._data['position_world.y.m'].min(), self._data['position_world.y.m'].max()
-        # Add 30% padding
-        dx = x_max - x_min
-        dy = y_max - y_min
-        x_min -= np.floor(0.15 * dx)
-        x_max += np.floor(0.15 * dx)
-        y_min -= np.ceil(0.15 * dy)
-        y_max += np.ceil(0.15 * dy)
+        x, y, x_min, x_max, y_min, y_max = self.generate_zero_traj()
         # Plot the trajectory of the robot
         ax = fig.add_subplot(1, 1, 1)
-        ax.plot(self._data['position_world.x.m'], self._data['position_world.y.m'], label='Robot Trajectory', color='royalblue', zorder=3)
+        ax.plot(x, y, label='Robot Trajectory', color='royalblue', zorder=3)
         ax.set_xlabel('X (m)')
         ax.set_ylabel('Y (m)')
         ax.set_title('Robot Trajectory with Heading')
@@ -77,7 +85,7 @@ class GoThroughPositionsVisualizer(BaseTaskVisualizer, Registerable):
         target_pos = np.stack([target_pos_x, target_pos_y], axis=1)
         # Get unique target positions
         unique_target_pos = np.unique(target_pos, axis=0)
-        plt.scatter(unique_target_pos[:,0], unique_target_pos[:,1], color='r', facecolor='none', label='Goal Position', zorder=4)
+        plt.scatter(unique_target_pos[:,0], unique_target_pos[:,1], color='r', facecolor='none', label='Goal Positions', zorder=4)
         # Add the legend before adding the robot heading
         ax.legend()
         # Add the robot heading 20 points only
@@ -92,15 +100,7 @@ class GoThroughPositionsVisualizer(BaseTaskVisualizer, Registerable):
     @BaseTaskVisualizer.register
     def make_trajectory_video(self):
         # Compute the limits of the plot
-        x_min, x_max = self._data['position_world.x.m'].min(), self._data['position_world.x.m'].max()
-        y_min, y_max = self._data['position_world.y.m'].min(), self._data['position_world.y.m'].max()
-        # Add 30% padding
-        dx = x_max - x_min
-        dy = y_max - y_min
-        x_min -= np.floor(0.15 * dx)
-        x_max += np.floor(0.15 * dx)
-        y_min -= np.ceil(0.15 * dy)
-        y_max += np.ceil(0.15 * dy)
+        x, y, x_min, x_max, y_min, y_max = self.generate_zero_traj()
         # Make a blank canvas
         fig = plt.figure(figsize=(8,8))
         ax = fig.add_subplot(1, 1, 1)
@@ -111,8 +111,6 @@ class GoThroughPositionsVisualizer(BaseTaskVisualizer, Registerable):
         ax.set_ylim(y_min, y_max)
         ax.axis('equal')
         # Make the update function
-        x_pos = np.array(self._data['position_world.x.m'])
-        y_pos = np.array(self._data['position_world.y.m'])
         target_pos_x = np.array(self._data['target_position.x.m'])
         target_pos_y = np.array(self._data['target_position.y.m'])
         target_pos = np.stack([target_pos_x, target_pos_y], axis=1)
@@ -120,8 +118,8 @@ class GoThroughPositionsVisualizer(BaseTaskVisualizer, Registerable):
         unique_target_pos = np.unique(target_pos, axis=0)
         def update_trajectory(i):
             ax.clear()
-            ax.plot(x_pos[:i], y_pos[:i], label='Robot Trajectory', color='b', zorder=3)
-            ax.scatter(unique_target_pos[:,0], unique_target_pos[:,1], color='r', facecolor='none', label='Goal Position', zorder=4)
+            ax.plot(x[:i], y[:i], label='Robot Trajectory', color='b', zorder=3)
+            ax.scatter(unique_target_pos[:,0], unique_target_pos[:,1], color='r', facecolor='none', label='Goal Positions', zorder=4)
             ax.quiver(self._data['position_world.x.m'].iloc[i], self._data['position_world.y.m'].iloc[i], 
                       np.cos(self._data['heading_world.rad'].iloc[i]), np.sin(self._data['heading_world.rad'].iloc[i]),
                       color='b', label='Robot Heading',zorder=3)
@@ -131,6 +129,8 @@ class GoThroughPositionsVisualizer(BaseTaskVisualizer, Registerable):
             ax.set_xticks(np.arange(x_min, x_max + 0.25, 0.25), minor=True)
             ax.set_yticks(np.arange(y_min, y_max + 0.25, 0.25), minor=True)
             ax.grid(which='minor', color='gray', linewidth=0.5, linestyle='--')
+            ax.set_xlim(x_min, x_max)
+            ax.set_ylim(y_min, y_max)
             ax.axis('equal')
 
         ani = animation.FuncAnimation(fig, update_trajectory, frames=len(self._data), interval=5)
