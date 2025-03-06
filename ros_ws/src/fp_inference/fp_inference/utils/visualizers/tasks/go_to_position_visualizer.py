@@ -2,12 +2,46 @@ from matplotlib import pyplot as plt
 import matplotlib.animation as animation
 import pandas as pd
 import numpy as np
+import math
 
 from . import BaseTaskVisualizer, Registerable
 
 class GoToPositionVisualizer(BaseTaskVisualizer, Registerable):
     def __init__(self, data: pd.DataFrame, folder: str) -> None:
         super().__init__(data, folder)
+
+    @staticmethod
+    def auto_ceil(x):
+        a = math.ceil(math.log10(abs(x)))
+        precision = -a + 1
+        return round(x + 0.5 * 10**(-precision), precision)
+
+    def generate_grid(self, n_major_cells, n_minor_cells, ax, limits):
+        # Major cells are roundish numbers i.e. 2, 1, 0.5, 0.2
+        dx = limits[1] - limits[0]
+        x_tick_size = self.auto_ceil(dx / n_major_cells)
+        x_start_tick = math.floor(limits[0] / x_tick_size) * x_tick_size
+        x_end_tick = math.ceil(limits[1] / x_tick_size) * x_tick_size
+        x_range = np.arange(x_start_tick, x_end_tick + x_tick_size, x_tick_size)
+        dy = limits[3] - limits[2]
+        y_tick_size = self.auto_ceil(dy / n_major_cells)
+        y_start_tick = math.floor(limits[2] / y_tick_size) * y_tick_size
+        y_end_tick = math.ceil(limits[3] / y_tick_size) * y_tick_size
+        y_range = np.arange(y_start_tick, y_end_tick + y_tick_size, y_tick_size)
+        # Minor cells are 1/n of the major cells
+        x_minor_tick_size = x_tick_size / n_minor_cells
+        x_minor_range = np.arange(x_start_tick, x_end_tick + x_minor_tick_size, x_minor_tick_size)
+        y_minor_tick_size = y_tick_size / n_minor_cells
+        y_minor_range = np.arange(y_start_tick, y_end_tick + y_minor_tick_size, y_minor_tick_size)
+        # Set the ticks
+        ax.set_xticks(x_range)
+        ax.set_yticks(y_range)
+        ax.set_xticks(x_minor_range, minor=True)
+        ax.set_yticks(y_minor_range, minor=True)
+        # Set the grid
+        ax.grid(which='major', color='black', linewidth=1)
+        ax.grid(which='minor', color='gray', linewidth=0.5, linestyle='--')
+    
 
     def generate_zero_traj(self):
         x = np.array(self._data['position_world.x.m'])
@@ -49,12 +83,9 @@ class GoToPositionVisualizer(BaseTaskVisualizer, Registerable):
         target_pos_x = self._data['target_position.x.m'].iloc[-1]
         target_pos_y = self._data['target_position.y.m'].iloc[-1]
         plt.scatter(target_pos_x, target_pos_y, color='r', facecolor='none', label='Goal Position', zorder=4)
-        ax.set_xticks(np.arange(x_min, x_max + 1, 1))
-        ax.set_yticks(np.arange(y_min, y_max + 1, 1))
-        ax.grid(which='major', color='black', linewidth=1)
-        ax.set_xticks(np.arange(x_min, x_max + 0.25, 0.25), minor=True)
-        ax.set_yticks(np.arange(y_min, y_max + 0.25, 0.25), minor=True)
-        ax.grid(which='minor', color='gray', linewidth=0.5, linestyle='--')
+        self.generate_grid(8, 4, ax, [x_min, x_max, y_min, y_max])
+        # Set scientific notation
+        ax.ticklabel_format(axis='both', style='sci', scilimits=(0,0))
         ax.axis('equal')
         ax.legend()
         plt.savefig(f'{self._folder}/trajectory.png')
@@ -71,12 +102,9 @@ class GoToPositionVisualizer(BaseTaskVisualizer, Registerable):
         ax.set_xlabel('X (m)')
         ax.set_ylabel('Y (m)')
         ax.set_title('Robot Trajectory with Heading')
-        ax.set_xticks(np.arange(x_min, x_max + 1, 1))
-        ax.set_yticks(np.arange(y_min, y_max + 1, 1))
-        ax.grid(which='major', color='black', linewidth=1)
-        ax.set_xticks(np.arange(x_min, x_max + 0.25, 0.25), minor=True)
-        ax.set_yticks(np.arange(y_min, y_max + 0.25, 0.25), minor=True)
-        ax.grid(which='minor', color='gray', linewidth=0.5, linestyle='--')
+        self.generate_grid(8, 4, ax, [x_min, x_max, y_min, y_max])
+        # Set scientific notation
+        ax.ticklabel_format(axis='both', style='sci', scilimits=(0,0))
         # Add the goal position
         target_pos_x = self._data['target_position.x.m'].iloc[-1]
         target_pos_y = self._data['target_position.y.m'].iloc[-1]
@@ -115,12 +143,9 @@ class GoToPositionVisualizer(BaseTaskVisualizer, Registerable):
             ax.quiver(x[i], y[i], 
                       np.cos(self._data['heading_world.rad'].iloc[i]), np.sin(self._data['heading_world.rad'].iloc[i]),
                       color='b', label='Robot Heading',zorder=3)
-            ax.set_xticks(np.arange(x_min, x_max + 1, 1))
-            ax.set_yticks(np.arange(y_min, y_max + 1, 1))
-            ax.grid(which='major', color='black', linewidth=1)
-            ax.set_xticks(np.arange(x_min, x_max + 0.25, 0.25), minor=True)
-            ax.set_yticks(np.arange(y_min, y_max + 0.25, 0.25), minor=True)
-            ax.grid(which='minor', color='gray', linewidth=0.5, linestyle='--')
+            self.generate_grid(8, 4, ax, [x_min, x_max, y_min, y_max])
+            # Set scientific notation
+            ax.ticklabel_format(axis='both', style='sci', scilimits=(0,0))
             ax.set_xlim(x_min, x_max)
             ax.set_ylim(y_min, y_max)
             ax.axis('equal')

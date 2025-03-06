@@ -9,12 +9,12 @@ class TrackVelocitiesVisualizer(BaseTaskVisualizer, Registerable):
     def __init__(self, data: pd.DataFrame, folder: str) -> None:
         super().__init__(data, folder)
 
-    @BaseTaskVisualizer.register
-    def plot_trajectory(self) -> None:
-        fig = plt.figure(figsize=(8,8))
+    def generate_zero_traj(self):
+        x = np.array(self._data['position_world.x.m'])
+        y = np.array(self._data['position_world.y.m'])
         # Compute the limits of the plot
-        x_min, x_max = self._data['position_world.x.m'].min(), self._data['position_world.x.m'].max()
-        y_min, y_max = self._data['position_world.y.m'].min(), self._data['position_world.y.m'].max()
+        x_min, x_max = x.min(), x.max()
+        y_min, y_max = y.min(), y.max()
         # Add 30% padding
         dx = x_max - x_min
         dy = y_max - y_min
@@ -22,9 +22,26 @@ class TrackVelocitiesVisualizer(BaseTaskVisualizer, Registerable):
         x_max += np.floor(0.15 * dx)
         y_min -= np.ceil(0.15 * dy)
         y_max += np.ceil(0.15 * dy)
+        # Equalize X and Y limits
+        dx = x_max - x_min
+        dy = y_max - y_min
+        x_center = (x_min + x_max) / 2
+        y_center = (y_min + y_max) / 2
+        dxy = max(dx, dy)
+        x_min = np.ceil(x_center - dxy / 2)
+        x_max = np.floor(x_center + dxy / 2)
+        y_min = np.floor(y_center - dxy / 2)
+        y_max = np.ceil(y_center + dxy / 2)
+        return x, y, x_min, x_max, y_min, y_max
+
+    @BaseTaskVisualizer.register
+    def plot_trajectory(self) -> None:
+        fig = plt.figure(figsize=(8,8))
+        # Compute the limits of the plot
+        x, y, x_min, x_max, y_min, y_max = self.generate_zero_traj()
         # Plot the trajectory of the robot
         ax = fig.add_subplot(1, 1, 1)
-        ax.plot(self._data['position_world.x.m'], self._data['position_world.y.m'], label='Robot Trajectory', color='royalblue', zorder=3)
+        ax.plot(x, y, label='Robot Trajectory', color='royalblue', zorder=3)
         ax.set_xlabel('X (m)')
         ax.set_ylabel('Y (m)')
         ax.set_title('Robot Trajectory')
@@ -49,18 +66,10 @@ class TrackVelocitiesVisualizer(BaseTaskVisualizer, Registerable):
     def plot_trajectory_with_heading(self) -> None:
         fig = plt.figure(figsize=(8,8))
         # Compute the limits of the plot
-        x_min, x_max = self._data['position_world.x.m'].min(), self._data['position_world.x.m'].max()
-        y_min, y_max = self._data['position_world.y.m'].min(), self._data['position_world.y.m'].max()
-        # Add 30% padding
-        dx = x_max - x_min
-        dy = y_max - y_min
-        x_min -= np.floor(0.15 * dx)
-        x_max += np.floor(0.15 * dx)
-        y_min -= np.ceil(0.15 * dy)
-        y_max += np.ceil(0.15 * dy)
+        x, y, x_min, x_max, y_min, y_max = self.generate_zero_traj()
         # Plot the trajectory of the robot
         ax = fig.add_subplot(1, 1, 1)
-        ax.plot(self._data['position_world.x.m'], self._data['position_world.y.m'], label='Robot Trajectory', color='royalblue', zorder=3)
+        ax.plot(x, y, label='Robot Trajectory', color='royalblue', zorder=3)
         ax.set_xlabel('X (m)')
         ax.set_ylabel('Y (m)')
         ax.set_title('Robot Trajectory with Heading')
@@ -81,7 +90,7 @@ class TrackVelocitiesVisualizer(BaseTaskVisualizer, Registerable):
         ax.legend()
         # Add the robot heading 20 points only
         idx = np.arange(0, len(self._data), len(self._data) // 20)
-        ax.quiver(self._data['position_world.x.m'].iloc[idx], self._data['position_world.y.m'].iloc[idx], 
+        ax.quiver(x[idx], y[idx], 
                   np.cos(self._data['heading_world.rad'].iloc[idx]), np.sin(self._data['heading_world.rad'].iloc[idx]),
                   color='royalblue', label='Robot Heading', zorder=3)
         ax.axis('equal')
@@ -90,15 +99,7 @@ class TrackVelocitiesVisualizer(BaseTaskVisualizer, Registerable):
     @BaseTaskVisualizer.register
     def make_trajectory_video(self):
         # Compute the limits of the plot
-        x_min, x_max = self._data['position_world.x.m'].min(), self._data['position_world.x.m'].max()
-        y_min, y_max = self._data['position_world.y.m'].min(), self._data['position_world.y.m'].max()
-        # Add 30% padding
-        dx = x_max - x_min
-        dy = y_max - y_min
-        x_min -= np.floor(0.15 * dx)
-        x_max += np.floor(0.15 * dx)
-        y_min -= np.ceil(0.15 * dy)
-        y_max += np.ceil(0.15 * dy)
+        x, y, x_min, x_max, y_min, y_max = self.generate_zero_traj()
         # Make a blank canvas
         fig = plt.figure(figsize=(8,8))
         ax = fig.add_subplot(1, 1, 1)
@@ -109,19 +110,15 @@ class TrackVelocitiesVisualizer(BaseTaskVisualizer, Registerable):
         ax.set_ylim(y_min, y_max)
         ax.axis('equal')
         # Make the update function
-        x_pos = np.array(self._data['position_world.x.m'])
-        y_pos = np.array(self._data['position_world.y.m'])
         target_pos_x = np.array(self._data['target_position.x.m'])
         target_pos_y = np.array(self._data['target_position.y.m'])
         target_pos = np.stack([target_pos_x, target_pos_y], axis=1)
-        # Get unique target positions
-        unique_target_pos = np.unique(target_pos, axis=0)
         def update_trajectory(i):
             ax.clear()
-            ax.plot(x_pos[:i], y_pos[:i], label='Robot Trajectory', color='b', zorder=3)
+            ax.plot(x[:i], y[:i], label='Robot Trajectory', color='b', zorder=3)
             ax.scatter(target_pos[:i,0], target_pos[:i,1], color='grey', facecolor='none', label='Goal Position', zorder=4)
             ax.scatter(target_pos[i,0], target_pos[i,1], color='r', facecolor='none', label='Goal Position', zorder=5)
-            ax.quiver(self._data['position_world.x.m'].iloc[i], self._data['position_world.y.m'].iloc[i], 
+            ax.quiver(x[i], y[i], 
                       np.cos(self._data['heading_world.rad'].iloc[i]), np.sin(self._data['heading_world.rad'].iloc[i]),
                       color='b', label='Robot Heading',zorder=3)
             ax.set_xticks(np.arange(x_min, x_max + 1, 1))
@@ -135,70 +132,59 @@ class TrackVelocitiesVisualizer(BaseTaskVisualizer, Registerable):
         ani = animation.FuncAnimation(fig, update_trajectory, frames=len(self._data), interval=5)
         ani.save(f'{self._folder}/trajectory.mp4')
         
+    @BaseTaskVisualizer.register
+    def plot_velocity_error_with_helpers(self):
+        fig = plt.figure(figsize=(10,5))
+        ax = fig.add_subplot(2, 1, 1)
+        ax.plot(self._data['elapsed_time.s'], self._data['task_data.lin_vel_error.m/s'], label='linear velocity error')
+        ax.plot(self._data['elapsed_time.s'], self._data['task_data.lat_vel_error.m/s'], label='lateral velocity error')
+        ax.set_xlabel('Time (s)')
+        ax.set_ylabel('Error (m/s)')
+        ax.set_title('Velocity Error')
+        ax.grid(visible=True)
+        ax.grid(linestyle = '--', linewidth = 0.5)
+        ax.legend()
+        ax = fig.add_subplot(2, 1, 2)
+        ax.plot(self._data['elapsed_time.s'], self._data['task_data.ang_vel_error.rad/s'], label='angular velocity error')
+        ax.set_xlabel('Time (s)')
+        ax.set_ylabel('Error (rad/s)')
+        ax.set_title('Velocity Error')
+        ax.grid(visible=True)
+        ax.grid(linestyle = '--', linewidth = 0.5)
+        ax.legend()
+        plt.savefig(f'{self._folder}/velocity_error.png')
 
-    #@BaseTaskVisualizer.register
-    #def plot_position_error_with_helpers(self):
-    #    fig = plt.figure(figsize=(10,5))
-    #    ax = fig.add_subplot(1, 1, 1)
-    #    ax.plot(self._data['elapsed_time.s'], self._data['distance_error.m'], label='Distance to Goal')
-    #    ax.set_xlabel('Time (s)')
-    #    ax.set_ylabel('Error (m)')
-    #    ax.set_title('Position Error')
-    #    ax.grid(visible=True)
-    #    ax.grid(linestyle = '--', linewidth = 0.5)
+    @BaseTaskVisualizer.register
+    def plot_velocity(self):
+        fig = plt.figure(figsize=(10,5))
+        fig.suptitle('Robot Body Velocities')
+        ax = fig.add_subplot(3, 1, 1)
+        ax.plot(self._data['elapsed_time.s'], self._data['linear_velocities_body.x.m/s'], label='current')
+        ax.plot(self._data['elapsed_time.s'], self._data['target_linear_vel.m/s'], label='target')
+        ax.axhline(y=0, color='grey', linestyle='--')
+        ax.set_xlabel('Time (s)')
+        ax.set_ylabel('Linear Velocity (m/s)')
+        ax.set_title('Linear Velocity')
+        ax.grid(visible=True)
+        ax.legend()
+        ax = fig.add_subplot(3, 1, 2)
+        ax.plot(self._data['elapsed_time.s'], self._data['linear_velocities_body.y.m/s'], label='current')
+        ax.plot(self._data['elapsed_time.s'], self._data['target_lateral_vel.m/s'], label='target')
+        ax.axhline(y=0, color='grey', linestyle='--')
+        ax.set_xlabel('Time (s)')
+        ax.set_ylabel('Lateral Velocity (m/s)')
+        ax.set_title('Lateral Velocity')
+        ax.grid(visible=True)
+        ax.legend()
+        ax = fig.add_subplot(3, 1, 3)
+        ax.plot(self._data['elapsed_time.s'], self._data['angular_velocities_body.z.rad/s'], label='current')
+        ax.plot(self._data['elapsed_time.s'], self._data['target_angular_vel.rad/s'], label='target')
+        ax.set_xlabel('Time (s)')
+        ax.set_ylabel('Angular Velocity (rad/s)')
+        ax.set_title('Angular Velocity')
+        ax.grid(visible=True)
+        ax.axhline(y=0, color='grey', linestyle='--')
+        ax.legend()
+        fig.tight_layout()
 
-    #    ax.legend()
-    #    # Draw a horizontal line at 0.25m
-    #    ax.axhline(y=0.25, color='k', linestyle='--', label='25cm threshold')
-    #    # Draw a horizontal line at 0.10m
-    #    ax.axhline(y=0.10, color='k', linestyle='--', label='10cm threshold')
-    #    # Draw a horizontal line at 0.05m
-    #    ax.axhline(y=0.05, color='k', linestyle='--', label='5cm threshold')
-    #    plt.savefig(f'{self._folder}/position_error.png')
-
-    #@BaseTaskVisualizer.register
-    #def plot_position_error_with_helpers_log(self):
-    #    fig = plt.figure(figsize=(10,5))
-    #    ax = fig.add_subplot(1, 1, 1)
-    #    ax.plot(self._data['elapsed_time.s'], self._data['distance_error.m'], label='Distance to Goal')
-    #    ax.set_xlabel('Time (s)')
-    #    ax.set_ylabel('Error (m)')
-    #    ax.set_title('Position Error')
-    #    ax.grid(visible=True)
-    #    ax.legend()
-    #    # Draw a horizontal line at 0.25m
-    #    ax.axhline(y=0.25, color='grey', linestyle='--', label='25cm threshold')
-    #    # Draw a horizontal line at 0.10m
-    #    ax.axhline(y=0.10, color='grey', linestyle='--', label='10cm threshold')
-    #    # Draw a horizontal line at 0.05m
-    #    ax.axhline(y=0.05, color='grey', linestyle='--', label='5cm threshold')
-    #    ax.set_yscale('log')
-    #    plt.savefig(f'{self._folder}/position_error_log.png')
-    
-    #@BaseTaskVisualizer.register
-    #def plot_velocity(self):
-    #    fig = plt.figure(figsize=(10,5))
-    #    fig.suptitle('Robot Body Velocities')
-    #    ax = fig.add_subplot(2, 1, 1)
-    #    ax.plot(self._data['elapsed_time.s'], self._data['linear_velocities_body.x.m/s'], label='body linear velocity')
-    #    ax.plot(self._data['elapsed_time.s'], self._data['linear_velocities_body.y.m/s'], label='body lateral velocity')
-    #    ax.set_xlabel('Time (s)')
-    #    ax.set_ylabel('Linear Velocities (m/s)')
-    #    ax.set_title('Linear Velocities')
-    #    # Add a grid
-    #    ax.grid(visible=True)
-    #    ax.legend()
-    #    # Add a 0 line in a grey color
-    #    ax.axhline(y=0, color='grey', linestyle='--')
-    #    ax = fig.add_subplot(2, 1, 2)
-    #    ax.plot(self._data['elapsed_time.s'], self._data['angular_velocities_body.z.rad/s'], label='body angular velocity')
-    #    ax.set_xlabel('Time (s)')
-    #    ax.set_ylabel('Angular Velocity (rad/s)')
-    #    ax.set_title('Angular Velocity')
-    #    ax.grid(visible=True)
-    #    ax.legend()
-    #    # Add a 0 line in a grey color
-    #    ax.axhline(y=0, color='grey', linestyle='--')
-    #    fig.tight_layout()
-
-    #    plt.savefig(f'{self._folder}/linear_velocity.png')
+        plt.savefig(f'{self._folder}/velocities.png')
