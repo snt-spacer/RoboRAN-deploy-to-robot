@@ -9,31 +9,6 @@ class TrackVelocitiesVisualizer(BaseTaskVisualizer, Registerable):
     def __init__(self, data: pd.DataFrame, folder: str) -> None:
         super().__init__(data, folder)
 
-    def generate_zero_traj(self):
-        x = np.array(self._data['position_world.x.m'])
-        y = np.array(self._data['position_world.y.m'])
-        # Compute the limits of the plot
-        x_min, x_max = x.min(), x.max()
-        y_min, y_max = y.min(), y.max()
-        # Add 30% padding
-        dx = x_max - x_min
-        dy = y_max - y_min
-        x_min -= np.floor(0.15 * dx)
-        x_max += np.floor(0.15 * dx)
-        y_min -= np.ceil(0.15 * dy)
-        y_max += np.ceil(0.15 * dy)
-        # Equalize X and Y limits
-        dx = x_max - x_min
-        dy = y_max - y_min
-        x_center = (x_min + x_max) / 2
-        y_center = (y_min + y_max) / 2
-        dxy = max(dx, dy)
-        x_min = np.ceil(x_center - dxy / 2)
-        x_max = np.floor(x_center + dxy / 2)
-        y_min = np.floor(y_center - dxy / 2)
-        y_max = np.ceil(y_center + dxy / 2)
-        return x, y, x_min, x_max, y_min, y_max
-
     @BaseTaskVisualizer.register
     def plot_trajectory(self) -> None:
         fig = plt.figure(figsize=(8,8))
@@ -41,7 +16,7 @@ class TrackVelocitiesVisualizer(BaseTaskVisualizer, Registerable):
         x, y, x_min, x_max, y_min, y_max = self.generate_zero_traj()
         # Plot the trajectory of the robot
         ax = fig.add_subplot(1, 1, 1)
-        ax.plot(x, y, label='Robot Trajectory', color='royalblue', zorder=3)
+        ax.plot(x, y, label='Robot Trajectory', color='royalblue', zorder=4)
         ax.set_xlabel('X (m)')
         ax.set_ylabel('Y (m)')
         ax.set_title('Robot Trajectory')
@@ -51,13 +26,10 @@ class TrackVelocitiesVisualizer(BaseTaskVisualizer, Registerable):
         target_pos = np.stack([target_pos_x, target_pos_y], axis=1)
         # Get unique target positions
         unique_target_pos = np.unique(target_pos, axis=0)
-        plt.scatter(unique_target_pos[:,0], unique_target_pos[:,1], color='r', facecolor='none', label='Goal Position', zorder=4)
-        ax.set_xticks(np.arange(x_min, x_max + 1, 1))
-        ax.set_yticks(np.arange(y_min, y_max + 1, 1))
-        ax.grid(which='major', color='black', linewidth=1)
-        ax.set_xticks(np.arange(x_min, x_max + 0.25, 0.25), minor=True)
-        ax.set_yticks(np.arange(y_min, y_max + 0.25, 0.25), minor=True)
-        ax.grid(which='minor', color='gray', linewidth=0.5, linestyle='--')
+        plt.scatter(unique_target_pos[:,0], unique_target_pos[:,1], color='r', facecolor='none', label='Goal Position', zorder=3)
+        self.generate_grid(8, 4, ax, [x_min, x_max, y_min, y_max])
+        # Set scientific notation
+        ax.ticklabel_format(axis='both', style='sci', scilimits=(0,0))
         ax.axis('equal')
         ax.legend()
         plt.savefig(f'{self._folder}/trajectory.png')
@@ -69,23 +41,20 @@ class TrackVelocitiesVisualizer(BaseTaskVisualizer, Registerable):
         x, y, x_min, x_max, y_min, y_max = self.generate_zero_traj()
         # Plot the trajectory of the robot
         ax = fig.add_subplot(1, 1, 1)
-        ax.plot(x, y, label='Robot Trajectory', color='royalblue', zorder=3)
+        ax.plot(x, y, label='Robot Trajectory', color='royalblue', zorder=4)
         ax.set_xlabel('X (m)')
         ax.set_ylabel('Y (m)')
         ax.set_title('Robot Trajectory with Heading')
-        ax.set_xticks(np.arange(x_min, x_max + 1, 1))
-        ax.set_yticks(np.arange(y_min, y_max + 1, 1))
-        ax.grid(which='major', color='black', linewidth=1)
-        ax.set_xticks(np.arange(x_min, x_max + 0.25, 0.25), minor=True)
-        ax.set_yticks(np.arange(y_min, y_max + 0.25, 0.25), minor=True)
-        ax.grid(which='minor', color='gray', linewidth=0.5, linestyle='--')
+        self.generate_grid(8, 4, ax, [x_min, x_max, y_min, y_max])
+        # Set scientific notation
+        ax.ticklabel_format(axis='both', style='sci', scilimits=(0,0))
         # Add the goal position
         target_pos_x = np.array(self._data['target_position.x.m'])
         target_pos_y = np.array(self._data['target_position.y.m'])
         target_pos = np.stack([target_pos_x, target_pos_y], axis=1)
         # Get unique target positions
         unique_target_pos = np.unique(target_pos, axis=0)
-        plt.scatter(unique_target_pos[:,0], unique_target_pos[:,1], color='r', facecolor='none', label='Goal Position', zorder=4)
+        plt.scatter(unique_target_pos[:,0], unique_target_pos[:,1], color='r', facecolor='none', label='Goal Position', zorder=3)
         # Add the legend before adding the robot heading
         ax.legend()
         # Add the robot heading 20 points only
@@ -96,6 +65,7 @@ class TrackVelocitiesVisualizer(BaseTaskVisualizer, Registerable):
         ax.axis('equal')
         plt.savefig(f'{self._folder}/trajectory_with_heading.png')
 
+    @BaseTaskVisualizer.register_video
     @BaseTaskVisualizer.register
     def make_trajectory_video(self):
         # Compute the limits of the plot
@@ -115,19 +85,18 @@ class TrackVelocitiesVisualizer(BaseTaskVisualizer, Registerable):
         target_pos = np.stack([target_pos_x, target_pos_y], axis=1)
         def update_trajectory(i):
             ax.clear()
-            ax.plot(x[:i], y[:i], label='Robot Trajectory', color='b', zorder=3)
-            ax.scatter(target_pos[:i,0], target_pos[:i,1], color='grey', facecolor='none', label='Goal Position', zorder=4)
-            ax.scatter(target_pos[i,0], target_pos[i,1], color='r', facecolor='none', label='Goal Position', zorder=5)
+            ax.plot(x[:i], y[:i], label='Robot Trajectory', color='b', zorder=5)
+            ax.scatter(target_pos[:i,0], target_pos[:i,1], color='grey', facecolor='none', label='Goal Position', zorder=3)
+            ax.scatter(target_pos[i,0], target_pos[i,1], color='r', facecolor='none', label='Goal Position', zorder=4)
             ax.quiver(x[i], y[i], 
                       np.cos(self._data['heading_world.rad'].iloc[i]), np.sin(self._data['heading_world.rad'].iloc[i]),
                       color='b', label='Robot Heading',zorder=3)
-            ax.set_xticks(np.arange(x_min, x_max + 1, 1))
-            ax.set_yticks(np.arange(y_min, y_max + 1, 1))
-            ax.grid(which='major', color='black', linewidth=1)
-            ax.set_xticks(np.arange(x_min, x_max + 0.25, 0.25), minor=True)
-            ax.set_yticks(np.arange(y_min, y_max + 0.25, 0.25), minor=True)
-            ax.grid(which='minor', color='gray', linewidth=0.5, linestyle='--')
+            self.generate_grid(8, 4, ax, [x_min, x_max, y_min, y_max])
+            # Set scientific notation
+            ax.ticklabel_format(axis='both', style='sci', scilimits=(0,0))
             ax.axis('equal')
+
+        print(len(self._data))
 
         ani = animation.FuncAnimation(fig, update_trajectory, frames=len(self._data), interval=5)
         ani.save(f'{self._folder}/trajectory.mp4')
@@ -152,6 +121,7 @@ class TrackVelocitiesVisualizer(BaseTaskVisualizer, Registerable):
         ax.grid(visible=True)
         ax.grid(linestyle = '--', linewidth = 0.5)
         ax.legend()
+        fig.tight_layout()
         plt.savefig(f'{self._folder}/velocity_error.png')
 
     @BaseTaskVisualizer.register

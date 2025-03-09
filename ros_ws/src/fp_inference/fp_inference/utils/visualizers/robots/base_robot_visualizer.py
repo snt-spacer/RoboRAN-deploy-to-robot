@@ -32,6 +32,6 @@ class BaseRobotVisualizer(AutoRegister):
         self._data = data
         self._folder = folder
 
-    def generate_plots(self) -> None:
+    def generate_plots(self, generate_videos:bool = False) -> None:
         for plot in self.get_registered_methods().values():
             plot(self)

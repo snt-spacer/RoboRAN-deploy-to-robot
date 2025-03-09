@@ -9,31 +9,6 @@ class GoToPoseVisualizer(BaseTaskVisualizer, Registerable):
     def __init__(self, data: pd.DataFrame, folder: str) -> None:
         super().__init__(data, folder)
 
-    def generate_zero_traj(self):
-        x = np.array(self._data['position_world.x.m'])
-        y = np.array(self._data['position_world.y.m'])
-        # Compute the limits of the plot
-        x_min, x_max = x.min(), x.max()
-        y_min, y_max = y.min(), y.max()
-        # Add 30% padding
-        dx = x_max - x_min
-        dy = y_max - y_min
-        x_min -= np.floor(0.15 * dx)
-        x_max += np.floor(0.15 * dx)
-        y_min -= np.ceil(0.15 * dy)
-        y_max += np.ceil(0.15 * dy)
-        # Equalize X and Y limits
-        dx = x_max - x_min
-        dy = y_max - y_min
-        x_center = (x_min + x_max) / 2
-        y_center = (y_min + y_max) / 2
-        dxy = max(dx, dy)
-        x_min = np.floor(x_center - dxy / 2)
-        x_max = np.ceil(x_center + dxy / 2)
-        y_min = np.floor(y_center - dxy / 2)
-        y_max = np.ceil(y_center + dxy / 2)
-        return x, y, x_min, x_max, y_min, y_max
-
     @BaseTaskVisualizer.register
     def plot_trajectory(self) -> None:
         fig = plt.figure(figsize=(8,8))
@@ -50,12 +25,9 @@ class GoToPoseVisualizer(BaseTaskVisualizer, Registerable):
         target_pos_y = self._data['target_position.y.m'].iloc[-1]
         target_heading = self._data['target_heading.rad'].iloc[-1]
         plt.quiver(target_pos_x, target_pos_y, np.cos(target_heading), np.sin(target_heading), color='r', label='Goal Pose', zorder=4)
-        ax.set_xticks(np.arange(x_min, x_max + 1, 1))
-        ax.set_yticks(np.arange(y_min, y_max + 1, 1))
-        ax.grid(which='major', color='black', linewidth=1)
-        ax.set_xticks(np.arange(x_min, x_max + 0.25, 0.25), minor=True)
-        ax.set_yticks(np.arange(y_min, y_max + 0.25, 0.25), minor=True)
-        ax.grid(which='minor', color='gray', linewidth=0.5, linestyle='--')
+        self.generate_grid(8, 4, ax, [x_min, x_max, y_min, y_max])
+        # Set scientific notation
+        ax.ticklabel_format(axis='both', style='sci', scilimits=(0,0))
         ax.axis('equal')
         ax.legend()
         plt.savefig(f'{self._folder}/trajectory.png')
@@ -72,12 +44,9 @@ class GoToPoseVisualizer(BaseTaskVisualizer, Registerable):
         ax.set_xlabel('X (m)')
         ax.set_ylabel('Y (m)')
         ax.set_title('Robot Trajectory with Heading')
-        ax.set_xticks(np.arange(x_min, x_max + 1, 1))
-        ax.set_yticks(np.arange(y_min, y_max + 1, 1))
-        ax.grid(which='major', color='black', linewidth=1)
-        ax.set_xticks(np.arange(x_min, x_max + 0.25, 0.25), minor=True)
-        ax.set_yticks(np.arange(y_min, y_max + 0.25, 0.25), minor=True)
-        ax.grid(which='minor', color='gray', linewidth=0.5, linestyle='--')
+        self.generate_grid(8, 4, ax, [x_min, x_max, y_min, y_max])
+        # Set scientific notation
+        ax.ticklabel_format(axis='both', style='sci', scilimits=(0,0))
         # Add the goal position
         target_pos_x = self._data['target_position.x.m'].iloc[-1]
         target_pos_y = self._data['target_position.y.m'].iloc[-1]
@@ -94,6 +63,7 @@ class GoToPoseVisualizer(BaseTaskVisualizer, Registerable):
         plt.savefig(f'{self._folder}/trajectory_with_heading.png')
         plt.close(fig)
 
+    @BaseTaskVisualizer.register_video
     @BaseTaskVisualizer.register
     def make_trajectory_video(self):
         # Make a blank canvas
@@ -118,12 +88,9 @@ class GoToPoseVisualizer(BaseTaskVisualizer, Registerable):
             ax.quiver(x[i], y[i], 
                       np.cos(self._data['heading_world.rad'].iloc[i]), np.sin(self._data['heading_world.rad'].iloc[i]),
                       color='b', label='Robot Heading',zorder=3)
-            ax.set_xticks(np.arange(x_min, x_max + 1, 1))
-            ax.set_yticks(np.arange(y_min, y_max + 1, 1))
-            ax.grid(which='major', color='black', linewidth=1)
-            ax.set_xticks(np.arange(x_min, x_max + 0.25, 0.25), minor=True)
-            ax.set_yticks(np.arange(y_min, y_max + 0.25, 0.25), minor=True)
-            ax.grid(which='minor', color='gray', linewidth=0.5, linestyle='--')
+            self.generate_grid(8, 4, ax, [x_min, x_max, y_min, y_max])
+            # Set scientific notation
+            ax.ticklabel_format(axis='both', style='sci', scilimits=(0,0))
             ax.set_xlim(x_min, x_max)
             ax.set_ylim(y_min, y_max)
             ax.axis('equal')

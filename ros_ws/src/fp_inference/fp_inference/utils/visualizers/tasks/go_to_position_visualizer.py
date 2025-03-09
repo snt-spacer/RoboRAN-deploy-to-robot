@@ -10,64 +10,6 @@ class GoToPositionVisualizer(BaseTaskVisualizer, Registerable):
     def __init__(self, data: pd.DataFrame, folder: str) -> None:
         super().__init__(data, folder)
 
-    @staticmethod
-    def auto_ceil(x):
-        a = math.ceil(math.log10(abs(x)))
-        precision = -a + 1
-        return round(x + 0.5 * 10**(-precision), precision)
-
-    def generate_grid(self, n_major_cells, n_minor_cells, ax, limits):
-        # Major cells are roundish numbers i.e. 2, 1, 0.5, 0.2
-        dx = limits[1] - limits[0]
-        x_tick_size = self.auto_ceil(dx / n_major_cells)
-        x_start_tick = math.floor(limits[0] / x_tick_size) * x_tick_size
-        x_end_tick = math.ceil(limits[1] / x_tick_size) * x_tick_size
-        x_range = np.arange(x_start_tick, x_end_tick + x_tick_size, x_tick_size)
-        dy = limits[3] - limits[2]
-        y_tick_size = self.auto_ceil(dy / n_major_cells)
-        y_start_tick = math.floor(limits[2] / y_tick_size) * y_tick_size
-        y_end_tick = math.ceil(limits[3] / y_tick_size) * y_tick_size
-        y_range = np.arange(y_start_tick, y_end_tick + y_tick_size, y_tick_size)
-        # Minor cells are 1/n of the major cells
-        x_minor_tick_size = x_tick_size / n_minor_cells
-        x_minor_range = np.arange(x_start_tick, x_end_tick + x_minor_tick_size, x_minor_tick_size)
-        y_minor_tick_size = y_tick_size / n_minor_cells
-        y_minor_range = np.arange(y_start_tick, y_end_tick + y_minor_tick_size, y_minor_tick_size)
-        # Set the ticks
-        ax.set_xticks(x_range)
-        ax.set_yticks(y_range)
-        ax.set_xticks(x_minor_range, minor=True)
-        ax.set_yticks(y_minor_range, minor=True)
-        # Set the grid
-        ax.grid(which='major', color='black', linewidth=1)
-        ax.grid(which='minor', color='gray', linewidth=0.5, linestyle='--')
-    
-
-    def generate_zero_traj(self):
-        x = np.array(self._data['position_world.x.m'])
-        y = np.array(self._data['position_world.y.m'])
-        # Compute the limits of the plot
-        x_min, x_max = x.min(), x.max()
-        y_min, y_max = y.min(), y.max()
-        # Add 30% padding
-        dx = x_max - x_min
-        dy = y_max - y_min
-        x_min -= np.floor(0.15 * dx)
-        x_max += np.floor(0.15 * dx)
-        y_min -= np.ceil(0.15 * dy)
-        y_max += np.ceil(0.15 * dy)
-        # Equalize X and Y limits
-        dx = x_max - x_min
-        dy = y_max - y_min
-        x_center = (x_min + x_max) / 2
-        y_center = (y_min + y_max) / 2
-        dxy = max(dx, dy)
-        x_min = np.ceil(x_center - dxy / 2)
-        x_max = np.floor(x_center + dxy / 2)
-        y_min = np.floor(y_center - dxy / 2)
-        y_max = np.ceil(y_center + dxy / 2)
-        return x, y, x_min, x_max, y_min, y_max
-
     @BaseTaskVisualizer.register
     def plot_trajectory(self) -> None:
         fig = plt.figure(figsize=(8,8))
@@ -120,6 +62,7 @@ class GoToPositionVisualizer(BaseTaskVisualizer, Registerable):
         plt.savefig(f'{self._folder}/trajectory_with_heading.png')
         plt.close(fig)
 
+    @BaseTaskVisualizer.register_video
     @BaseTaskVisualizer.register
     def make_trajectory_video(self):
         # Compute the limits of the plot
