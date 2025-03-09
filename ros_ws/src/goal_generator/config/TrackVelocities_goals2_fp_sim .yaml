@@ -1,6 +1,0 @@
-trajectory:
-  name: "InifiniteSquare"
-  cfg:
-    x_dim: 1.0
-    y_dim: 1.0
-frame: "global"

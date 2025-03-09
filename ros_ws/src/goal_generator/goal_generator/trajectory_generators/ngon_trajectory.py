@@ -7,20 +7,32 @@ from . import Registerable, RegisterableCfg
 
 @dataclass
 class NGonTrajectoryCfg(BaseTrajectoryCfg, RegisterableCfg):
+    """Configuration for the NGon trajectory.
+    
+    The NGon trajectory is a polygon with n sides of equal length. The minimum number of sides is 3.
+    """
     num_sides: int = 3
+    """The number of sides of the NGon. Default is 3."""
     size: float = 1.0
+    """The size of the NGon. Default is 1.0."""
 
     def __post_init__(self):
         assert self.num_sides >= 3, "Number of sides must be at least 3"
 
 
 class NGonTrajectory(BaseTrajectory, Registerable):
+    """NGon trajectory generator.
+
+    The trajectory is a polygon with n sides of equal length. The minimum number of sides is 3.
+    """
     _cfg: NGonTrajectoryCfg
 
     def __init__(self, cfg: NGonTrajectoryCfg) -> None:
+        """Initialize the NGon trajectory generator."""
         super().__init__(cfg)
 
     def generate_trajectory(self) -> None:
+        """Generate the NGon trajectory."""
         num_points = int(1000 / self._cfg.num_sides)
         t = np.linspace(0, 1, num=num_points)
         x = []
@@ -36,6 +48,4 @@ class NGonTrajectory(BaseTrajectory, Registerable):
             )
         x = self._cfg.size * np.concatenate(x) / 2.0
         y = self._cfg.size * np.concatenate(y) / 2.0
-
         self._trajectory = np.stack((x, y), axis=1)
-        self._trajectory_angle = np.arctan2(y, x)
