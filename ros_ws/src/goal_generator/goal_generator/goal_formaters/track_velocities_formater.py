@@ -79,7 +79,8 @@ class TrackVelocitiesFormater(Registerable, BaseFormater):
 
     def log_publish(self) -> str:
         """Log the publish of the goal."""
-        return f"Generated {self._yaml_file["trajectory"]["name"]} trajectory!"
+        name=self._yaml_file["trajectory"]["name"]
+        return f"Generated {name} trajectory!"
 
     @property
     def goal(self) -> PoseArray:

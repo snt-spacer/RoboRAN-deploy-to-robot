@@ -10,6 +10,9 @@ RUN apt-get update && apt-get install -y \
     ros-humble-rclpy \
     ros-humble-geometry-msgs \
     ros-humble-joy \
+    ros-humble-ackermann-msgs \
+    ffmpeg \
+    vim \
     git \
     byobu \
     && rm -rf /var/lib/apt/lists/*

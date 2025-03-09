@@ -8,7 +8,7 @@ from ament_index_python.packages import get_package_share_directory
 def generate_launch_description():
     goal_generator_dir = get_package_share_directory("goal_generator")
     goals_file_path = LaunchConfiguration(
-        "goals_file", default=PathJoinSubstitution([goal_generator_dir, "config", "infinity_square.yaml"])
+        "goals_file", default=PathJoinSubstitution([goal_generator_dir, "config", "lissajous.yaml"])
     )
 
     return LaunchDescription(
@@ -27,7 +27,8 @@ def generate_launch_description():
                     }
                 ],
                 remappings=[
-                    ("state_preprocessor", "/odom"),
+                    ("task_is_done", "task_available_interface"),
+                    ("state_preprocessor_input", "/omniFPS/Robots/FloatingPlatform/odom"),
                 ]
             )
         ]
