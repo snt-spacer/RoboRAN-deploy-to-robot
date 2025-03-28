@@ -1,0 +1,5 @@
+trajectory:
+  name: "Square"
+  cfg:
+    x_dim: 15.0
+    y_dim: 15.0

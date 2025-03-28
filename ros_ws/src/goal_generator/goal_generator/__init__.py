@@ -1,1 +1,2 @@
 from .goal_generator_node import GoalFormaterFactory
+from .trajectory_generators import TrajectoryFactory, TrajectoryCfgFactory

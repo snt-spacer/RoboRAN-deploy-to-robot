@@ -30,6 +30,7 @@ RUN apt update && apt install -y ros-$ROS_DISTRO-desktop python3-argcomplete pyt
 # install ros2 packages
 RUN apt-get update && apt-get install -y --no-install-recommends \
     ros-humble-ros-core \
+    ros-humble-ackermann-msgs \
     && rm -rf /var/lib/apt/lists/*
 
 # install bootstrap tools

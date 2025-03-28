@@ -1,0 +1,4 @@
+trajectory:
+  name: "BernouilliLemniscate"
+  cfg:
+    a: 7.5
