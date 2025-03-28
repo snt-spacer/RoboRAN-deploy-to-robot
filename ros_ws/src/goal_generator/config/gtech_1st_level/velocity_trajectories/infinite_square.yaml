@@ -1,0 +1,7 @@
+trajectory:
+  name: "InfiniteSquare"
+  cfg:
+    x_dim: 2.0
+    y_dim: 1.0
+    position_offset: [2.5, -1.5]
+    angle_offset: 0.0

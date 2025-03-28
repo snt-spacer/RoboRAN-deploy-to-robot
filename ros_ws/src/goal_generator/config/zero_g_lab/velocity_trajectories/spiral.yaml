@@ -1,0 +1,8 @@
+trajectory:
+  name: "Circle"
+  cfg:
+    min_radius: 0.75
+    max_radius: 1.25
+    num_turns: 3.0
+    position_offset: [2.5, -1.5]
+    angle_offset: 0.0

@@ -43,7 +43,7 @@ class GoToPoseFormater(Registerable, BaseFormater):
               orientation: {x: 0.0, y: 0.0, z: 0.0, w: 1.0}
         """
         # Basic format checks
-        assert "GoToPose" in self._yaml_file, "No GoToPose found in the YAML file."
+        assert "goals" in self._yaml_file, "No goals found in the YAML file."
         assert len(self._yaml_file["goals"]) > 0, "No GoToPose found in the YAML file."
 
         raw_data = self._yaml_file["goals"]

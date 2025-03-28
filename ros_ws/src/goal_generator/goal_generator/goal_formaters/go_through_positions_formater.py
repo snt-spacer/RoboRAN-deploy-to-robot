@@ -4,7 +4,7 @@ from . import BaseFormater
 from geometry_msgs.msg import PoseArray, Pose
 
 
-class GoThroughPositionFormater(Registerable, BaseFormater):
+class GoThroughPositionsFormater(Registerable, BaseFormater):
     """Go through position formater.
     
     This class is used to define the formater for the goal generator to go through a set of positions.

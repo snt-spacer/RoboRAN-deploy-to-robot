@@ -1,27 +1,20 @@
-from setuptools import setup
 import os
 from glob import glob
+from setuptools import setup
 
-package_name = "goal_generator"
-
-def generate_data_files():
-    pairs = []
-    for path, dirs, files in os.walk("config"):
-        if files:
-            target_dir = os.path.join("share", package_name, path)
-            data_files = [os.path.join(path, file) for file in files]
-            pairs.append((target_dir, data_files))
-    return pairs
+package_name = "rl_inference"
+# submodules = ["observation_formaters", "robot_interfaces", "state_preprocessors", "inference_runners", "utils"]
 
 setup(
     name=package_name,
+    # submodules = [package_name + "/" + submodule for submodule in submodules],
     version="0.0.0",
-    packages=[package_name],
+    packages=[package_name],  # , submodules],
     data_files=[
         ("share/ament_index/resource_index/packages", ["resource/" + package_name]),
         ("share/" + package_name, ["package.xml"]),
         (os.path.join("share", package_name), glob("launch/**/*launch.[pxy][yma]", recursive=True)),
-    ] + generate_data_files(),
+    ],
     install_requires=["setuptools"],
     zip_safe=True,
     maintainer="antoine",
@@ -31,7 +24,8 @@ setup(
     tests_require=["pytest"],
     entry_points={
         "console_scripts": [
-            "goal_generator_node = goal_generator.goal_generator_node:main",
+            "rl_task_node = rl_inference.rl_task_node:main",
+            "rl_task_node_v2 = rl_inference.rl_task_node_v2:main",
         ],
     },
 )

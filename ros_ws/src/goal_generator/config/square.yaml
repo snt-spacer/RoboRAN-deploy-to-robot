@@ -1,6 +1,0 @@
-trajectory:
-  name: "Square"
-  cfg:
-    x_dim: 25.0
-    y_dim: 25.0
-    position_offset: [2.5, -2.5]

@@ -1,8 +1,0 @@
-trajectory:
-  name: "Lissajous"
-  cfg:
-    A: 2.0
-    B: 2.0
-    a: 5.0
-    b: 4.0
-    omega_x: 1.5707963267948966

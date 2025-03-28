@@ -358,7 +358,7 @@ class GoalPublisherNode(Node):
             else:
                 raise ValueError("Invalid message type.")
         else:
-            return
+            return msg
 
     def task_is_done_callback(self, msg: Bool) -> None:
         """Task is done callback.

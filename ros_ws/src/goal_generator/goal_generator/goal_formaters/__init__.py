@@ -60,7 +60,7 @@ class GoalFormaterFactory:
 
         return cls.registry[cls_name](*args, **kwargs)
 
-from .go_through_positions_formater import GoThroughPositionFormater
+from .go_through_positions_formater import GoThroughPositionsFormater
 from .go_to_position_formater import GoToPositionFormater
 from .go_to_pose_formater import GoToPoseFormater
 from .track_velocities_formater import TrackVelocitiesFormater
