@@ -6,195 +6,70 @@ This repository extends the [IsaacLab RANS project](https://github.com/SpaceR-x-
 
 - **State Creation Node**: Computes the RL policy input (state vector) for a selected task and robot.
 - **Model Inference Node**: Subscribes to the state topic, runs the RL policy, and publishes actions to control the robot.
+- **Goal Generator Node**: Created goals for the tasks generated in the Model Inference.
 - **Simulated OptiTrack Data**: Generates synthetic pose updates to test the framework without real hardware.
 - **Dockerized Setup**: Ensures consistent environments for development, testing, and deployment.
 
----
-
-## Repository Structure
-
-```plaintext
-RANS_DeplyToRobot/
-├── docker/
-│   ├── Dockerfile                  # Main environment for ROS + model
-│   └── entrypoint.sh               # Entrypoint script for container
-│  
-├── src/
-│   ├── state_creation_node.py      # ROS node for state creation
-│   ├── optitrack_simulator.py      # Simulated OptiTrack messages
-│   ├── model_inference_node.py     # ROS node for running RL models
-│   └── utils.py                    # Shared utility functions
-├── models/
-│   ├── policy_model.pth            # Pretrained RL model weights
-│   └── model_definition.py         # RL model architecture definition
-├── config/
-│   ├── ros_config.yaml             # ROS topic and parameters
-│   ├── task_config.yaml            # Task-specific configurations
-│   └── docker_config.yaml          # Docker-specific configurations
-├── tests/
-│   ├── test_state_creation.py      # Unit tests for state creation node
-│   ├── test_model_inference.py     # Unit tests for inference node
-│   └── test_utils.py               # Unit tests for shared utilities
-├── requirements.txt                # Python dependencies
-├── README.md                       
-└── .gitignore                      # Ignored files 
-```
 
 
-## **Docker Installation and Usage Guide**
-
-This module is containerized using Docker to simplify installation and runtime dependencies. Follow the steps below to set up and run the module inside a Docker container.
-
----
-
-### **Prerequisites**
+## Prerequisites
 - Install [Docker](https://docs.docker.com/get-docker/):
-  - For Ubuntu:
-    ```bash
-    sudo apt update
-    sudo apt install docker.io
-    sudo systemctl start docker
-    sudo systemctl enable docker
-    ```
-  - For macOS or Windows: Follow the instructions on the [Docker website](https://docs.docker.com/get-docker/).
 
-- (Optional) Install [Docker Compose](https://docs.docker.com/compose/install/) if you plan to use multiple services.
+## Setup
+Every robot has a low-level controller, follow the readme for the type of robot you want to run:
+- Floating Platform ([link](https://github.com/SpaceR-x-DreamLab-RL/RANS_low_level_robot_control))
 
----
+ssh to your robot, build and run the container:
+>[!Important]
+> Some robots use different builds. See list below:
+> Floating platform: `buld_L4T.sh` and `run_L4T.sh`
+> Kinki: `build_cyclone_laptop.sh` and `run_cyclone_laptop.sh`
 
-### **Building the Docker Image**
-
-1. **Navigate to the Repository Folder**:
-   ```bash
-   cd ~/Projects/RANS_DeployToRobot
-   ```
-
-2. **Build the Docker Image**:
-   Run the following command to build the image:
-   ```bash
-   docker build -t rans_deploytorobot .
-   ```
-
-   - `-t rans_deploytorobot`: Tags the image with the name `rans_deploytorobot`.
-   - `.`: Refers to the current directory, which contains the `Dockerfile`.
-
----
-
-### **Running the Docker Container**
-
-1. **Launch the Container**:
-   Run the container interactively:
-   ```bash
-   docker run -it --rm --name rans_test rans_deploytorobot
-   ```
-
-   - `-it`: Starts the container interactively.
-   - `--rm`: Removes the container after you exit.
-   - `--name rans_test`: Assigns the container the name `rans_test`.
-
-2. **Verify Files Inside the Container**:
-   Once inside the container, ensure the repository files are available:
-   ```bash
-   ls
-   ```
-   You should see:
-   ```
-   config  docker  models  README.md  src  tests  utils
-   ```
-
-3. **Run the ROS2 Nodes**:
-   - Start the **OptiTrack Simulator**:
-     ```bash
-     python3 src/optitrack_simulator.py
-     ```
-   - Start the **Goal Publisher**:
-     ```bash
-     python3 src/goal_publisher.py
-     ```
-   - Start the **State Creation Node**:
-     ```bash
-     python3 src/state_creation_node.py
-     ```
-
----
-
-### **Viewing Published Topics**
-
-1. List all active topics:
-   ```bash
-   ros2 topic list
-   ```
-
-2. Echo messages from a specific topic:
-   - For the goal:
-     ```bash
-     ros2 topic echo /spacer_floating_platform/goal
-     ```
-   - For the state:
-     ```bash
-     ros2 topic echo /rl_task_state
-     ```
-
----
-
-### **Stopping the Container**
-
-- If the container is running interactively, exit by typing:
-  ```bash
-  exit
-  ```
-
-- If you detached from the container, stop it with:
-  ```bash
-  docker stop rans_test
-  ```
-
----
-
-### **Optional: Mount Local Directory**
-
-If you want to test code changes without rebuilding the Docker image every time, you can mount your local repository into the container:
-
-```bash
-docker run -it --rm --name rans_test -v $(pwd):/RANS_DeployToRobot rans_deploytorobot
+```
+git clone
+cd 
+./docker/build.sh
+./docker/run.sh
 ```
 
-This will:
-- Mount your local directory to `/RANS_DeployToRobot` inside the container.
-- Reflect any changes made locally in the container.
+Once inside the container, split the terminal (tmux, byobu).
 
----
+- **Terminal 1**
 
-### **Cleaning Up Docker Resources**
-
-To free up space on your system:
-
-- Remove unused Docker images:
-  ```bash
-  docker image prune
+  Create your launch file in `src/rl_inference/launch/<robot>/<name>_launch.py` and run it, e.i. :
+  ```
+  ros2 laucnh rl_inference fp_optitrack_SKRL_GoToPose_launch.py
   ```
 
-- List all Docker containers:
-  ```bash
-  docker ps -a
+- **Terminal 2**
+  Run Joy from ROS2 to listen to joystick inputs
+  ```
+  ros2 run joy joy_node
   ```
 
-- Remove stopped containers:
-  ```bash
-  docker container prune
+- **Terminal 3**
+
+  Create your launch file in `src/goal_generator/launch/<robot>/<name>_launch.py` and run it, e.i. :
+  ```
+  ros2 launch goal_generator fp_GoToPose_launch.py
   ```
 
----
+> [!Note]
+> Make sure you have the correct remapping of the ros2 topics inside the launch files.
 
-### **Common Issues**
+### Robot Specific Setup
+Every robot might need extra things, they are described below.
 
-1. **Cannot Find File in Container**:
-   - Ensure the `COPY . .` line in the `Dockerfile` properly copies all files into the container.
+#### Floating Platform
+1. Clean and pressurize ZeroG lab.
+2. Calibrate Optitrack ([link](https://docs.optitrack.com/quick-start-guides/quick-start-guide-getting-started)).
+  > [!Note]
+  > Make sure to turn off the LED from the cameras once calibrated. It will help with the reflection on the ground to create the RigidBody and accuracy.
+3. Run Optitrack node
 
-2. **ROS2 Topics Not Found**:
-   - Verify all nodes are running:
-     ```bash
-     docker exec -it rans_test bash
-     ros2 topic list
-     ```
+    Open a third terminal to run optitrack ([vrpn_mocap](https://index.ros.org/r/vrpn_mocap/))
 
+    - **Terminal 3**
+      ```
+      ros2 launch vrpn_mocap client.launch.yaml server:=192.168.88.13
+      ```
