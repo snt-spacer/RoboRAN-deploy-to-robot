@@ -1,6 +1,10 @@
+| Turtlebot 2              | Kingfisher            | Floating platform                 |
+| :---------------- | :--------------: | :-------------------: |
+| <div align="center"><img src="docs/assets/static/tb-real.png" width="80%"></div>            |   <div align="center"><img src="docs/assets/static/boat-real.png" width="80%"></div>     |   <div align="center"><img src="docs/assets/static/fp_gotopose.png" width="80%"></div>    |
+
 # RL Task State Creation and Inference Framework
 
-This repository extends the [IsaacLab RANS project](https://github.com/SpaceR-x-DreamLab-RL/IsaacLab_RANS) to provide a modular and scalable framework for creating RL task states, running inference, and simulating robot control tasks. The system supports seamless integration with ROS, Docker, and a simulated OptiTrack environment for rapid testing and deployment.
+This repository extends the [RobRAN-Code](https://github.com/snt-spacer/RobRAN-Code) to provide a modular and scalable framework for creating RL task states, running inference, and simulating robot control tasks. The system supports seamless integration with ROS, Docker, and a simulated OptiTrack environment for rapid testing and deployment.
 
 ## Features
 
