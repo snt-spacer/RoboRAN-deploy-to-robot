@@ -4,7 +4,7 @@
 
 # RL Task State Creation and Inference Framework
 
-This repository extends the [RobRAN-Code](https://github.com/snt-spacer/RobRAN-Code) to provide a modular and scalable framework for creating RL task states, running inference, and simulating robot control tasks. The system supports seamless integration with ROS, Docker, and a simulated OptiTrack environment for rapid testing and deployment.
+This repository extends the [RoboRAN-Code](https://anonymous.4open.science/r/RoboRAN-Code-1A2B/README.md) to provide a modular and scalable framework for creating RL task states, running inference, and simulating robot control tasks. The system supports seamless integration with ROS, Docker, and a simulated OptiTrack environment for rapid testing and deployment.
 
 ## Features
 
